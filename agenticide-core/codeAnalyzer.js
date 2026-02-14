@@ -265,15 +265,18 @@ class CodeAnalyzer {
         const imports = [];
         const exports = [];
 
+        // Store 'this' context for use in traverse callbacks
+        const self = this;
+
         // Traverse AST
         traverse(ast, {
             // Function declarations
             FunctionDeclaration(path) {
                 functions.push({
                     name: path.node.id?.name || 'anonymous',
-                    signature: this.extractFunctionSignature(path.node),
-                    parameters: JSON.stringify(this.extractParameters(path.node.params)),
-                    return_type: this.extractReturnType(path.node),
+                    signature: self.extractFunctionSignature(path.node),
+                    parameters: JSON.stringify(self.extractParameters(path.node.params)),
+                    return_type: self.extractReturnType(path.node),
                     is_async: path.node.async,
                     is_exported: path.parent.type === 'ExportNamedDeclaration' || path.parent.type === 'ExportDefaultDeclaration',
                     line_start: path.node.loc?.start.line,
@@ -286,9 +289,9 @@ class CodeAnalyzer {
                 if (path.node.init && (path.node.init.type === 'ArrowFunctionExpression' || path.node.init.type === 'FunctionExpression')) {
                     functions.push({
                         name: path.node.id?.name || 'anonymous',
-                        signature: this.extractFunctionSignature(path.node.init),
-                        parameters: JSON.stringify(this.extractParameters(path.node.init.params)),
-                        return_type: this.extractReturnType(path.node.init),
+                        signature: self.extractFunctionSignature(path.node.init),
+                        parameters: JSON.stringify(self.extractParameters(path.node.init.params)),
+                        return_type: self.extractReturnType(path.node.init),
                         is_async: path.node.init.async,
                         is_exported: path.parent.parent?.type === 'ExportNamedDeclaration',
                         line_start: path.node.loc?.start.line,
@@ -318,9 +321,9 @@ class CodeAnalyzer {
                     if (member.type === 'ClassMethod') {
                         classes[classes.length - 1].methods.push({
                             name: member.key.name,
-                            signature: this.extractMethodSignature(member),
-                            parameters: JSON.stringify(this.extractParameters(member.params)),
-                            return_type: this.extractReturnType(member),
+                            signature: self.extractFunctionSignature(member),
+                            parameters: JSON.stringify(self.extractParameters(member.params)),
+                            return_type: self.extractReturnType(member),
                             is_async: member.async,
                             is_static: member.static,
                             visibility: 'public', // JS doesn't have visibility, but TS might
@@ -375,8 +378,8 @@ class CodeAnalyzer {
      * Extract function signature (contract)
      */
     extractFunctionSignature(node) {
-        const params = this.extractParameters(node.params);
-        const returnType = this.extractReturnType(node);
+        const params = self.extractParameters(node.params);
+        const returnType = self.extractReturnType(node);
         
         const paramStr = params.map(p => `${p.name}${p.type ? `: ${p.type}` : ''}`).join(', ');
         const returnStr = returnType ? `: ${returnType}` : '';
@@ -388,7 +391,7 @@ class CodeAnalyzer {
      * Extract method signature
      */
     extractMethodSignature(node) {
-        return this.extractFunctionSignature(node);
+        return self.extractFunctionSignature(node);
     }
 
     /**

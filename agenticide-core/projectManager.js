@@ -407,6 +407,81 @@ class ProjectManager extends EventEmitter {
         return JSON.stringify(context, null, 2);
     }
 
+    // ==================== Code Analysis ====================
+
+    /**
+     * Analyze project code structure
+     */
+    async analyzeProjectCode(projectId = null) {
+        const id = projectId || this.currentProject?.id;
+        if (!id) throw new Error('No project selected');
+
+        const project = this.index.db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+        if (!project) throw new Error('Project not found');
+
+        console.log(`🔍 Analyzing code structure for ${project.name}...`);
+        const results = await this.codeAnalyzer.analyzeProject(id, project.path);
+        
+        this.emit('project:analyzed', { projectId: id, results });
+        return results;
+    }
+
+    /**
+     * Get project code structure
+     */
+    getProjectStructure(projectId = null) {
+        const id = projectId || this.currentProject?.id;
+        if (!id) throw new Error('No project selected');
+
+        return this.codeAnalyzer.getProjectStructure(id);
+    }
+
+    /**
+     * Get file contracts (signatures only)
+     */
+    getFileContracts(filePath) {
+        return this.codeAnalyzer.getFileContracts(filePath);
+    }
+
+    /**
+     * Get control flow
+     */
+    getControlFlow(projectId = null) {
+        const id = projectId || this.currentProject?.id;
+        if (!id) throw new Error('No project selected');
+
+        return this.codeAnalyzer.traceControlFlow(id);
+    }
+
+    // ==================== Project Templates ====================
+
+    /**
+     * Create project from template
+     */
+    async createFromTemplate(templateName, projectPath, variables = {}) {
+        const result = await this.templates.createFromTemplate(templateName, projectPath, variables);
+        
+        // Register the new project
+        const project = await this.index.addProject(projectPath);
+        
+        this.emit('project:created', { project, template: templateName });
+        return { project, ...result };
+    }
+
+    /**
+     * List available templates
+     */
+    listTemplates() {
+        return this.templates.listTemplates();
+    }
+
+    /**
+     * Get template info
+     */
+    getTemplateInfo(templateName) {
+        return this.templates.getTemplateInfo(templateName);
+    }
+
     /**
      * Close and cleanup
      */
