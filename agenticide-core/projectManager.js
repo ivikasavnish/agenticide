@@ -1,6 +1,8 @@
 const ProjectIndex = require('./projectIndex');
 const TerminalManager = require('./terminalManager');
 const APITester = require('./apiTester');
+const CodeAnalyzer = require('./codeAnalyzer');
+const ProjectTemplates = require('./projectTemplates');
 const EventEmitter = require('events');
 const path = require('path');
 const fs = require('fs');
@@ -15,6 +17,8 @@ class ProjectManager extends EventEmitter {
         this.index = new ProjectIndex();
         this.terminalManager = new TerminalManager(this.index);
         this.apiTester = new APITester(this.index);
+        this.codeAnalyzer = new CodeAnalyzer(this.index.db);
+        this.templates = new ProjectTemplates(this.index.db);
         this.currentProject = null;
 
         // Forward terminal events
