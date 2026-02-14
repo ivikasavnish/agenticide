@@ -780,3 +780,130 @@ process.on('SIGINT', () => {
     }
     process.exit(0);
 });
+
+// Agent management commands
+program
+    .command('agent')
+    .description('Manage AI agents')
+    .option('-l, --list', 'List available agents')
+    .option('-i, --init <provider>', 'Initialize agent (claude|copilot|openai|local)')
+    .option('-s, --status', 'Show agent status')
+    .option('-m, --models', 'List available models')
+    .action(async (options) => {
+        const { AIAgentManager } = require('./aiAgents');
+        const agentManager = new AIAgentManager();
+        
+        if (options.models || options.list) {
+            const models = agentManager.listModels();
+            console.log(chalk.cyan('\n🤖 Available AI Models:\n'));
+            
+            let currentCategory = '';
+            models.forEach(m => {
+                if (m.category !== currentCategory) {
+                    currentCategory = m.category;
+                    console.log(chalk.bold(`\n${currentCategory.toUpperCase()}:`));
+                }
+                const tier = m.tier === 'premium' ? chalk.yellow('⭐ Premium') : 
+                            m.tier === 'local' ? chalk.green('💻 Local') : 
+                            chalk.blue('✓ Standard');
+                console.log(`  ${m.id.padEnd(20)} - ${m.name.padEnd(25)} [${tier}]`);
+            });
+            
+            console.log(chalk.cyan('\n📚 Usage Examples:\n'));
+            console.log('  agenticide chat --provider copilot');
+            console.log('  agenticide chat --provider claude');
+            console.log('  agenticide chat --provider openai --model gpt-4');
+            console.log('  agenticide chat --provider local --model codellama\n');
+            return;
+        }
+        
+        if (options.init) {
+            const spinner = ora(`Initializing ${options.init}...`).start();
+            let success = false;
+            
+            try {
+                switch (options.init.toLowerCase()) {
+                    case 'copilot':
+                        success = await agentManager.initCopilotAgent();
+                        break;
+                    case 'claude':
+                        success = await agentManager.initClaudeAgent();
+                        break;
+                    case 'openai':
+                        success = await agentManager.initOpenAIAgent();
+                        break;
+                    case 'local':
+                        success = await agentManager.initLocalAgent();
+                        break;
+                    default:
+                        throw new Error(`Unknown provider: ${options.init}`);
+                }
+                
+                if (success) {
+                    spinner.succeed(`${options.init} initialized successfully`);
+                } else {
+                    spinner.fail(`Failed to initialize ${options.init}`);
+                }
+            } catch (error) {
+                spinner.fail(error.message);
+            }
+            return;
+        }
+        
+        // Default: show help
+        console.log(chalk.cyan('\n🤖 Agent Manager\n'));
+        console.log('Commands:');
+        console.log('  --list, -l      List all available agents and models');
+        console.log('  --models, -m    Show detailed model information');
+        console.log('  --init <name>   Initialize specific agent');
+        console.log('  --status, -s    Show agent status\n');
+        console.log('Quick start:');
+        console.log('  agenticide agent --list');
+        console.log('  agenticide chat --provider copilot\n');
+    });
+
+// Model selection command
+program
+    .command('model')
+    .description('Manage AI models')
+    .option('-l, --list', 'List all models')
+    .option('-s, --set <model>', 'Set default model')
+    .option('-g, --get', 'Get current default model')
+    .action((options) => {
+        const config = loadConfig();
+        
+        if (options.list) {
+            const { AIAgentManager } = require('./aiAgents');
+            const agentManager = new AIAgentManager();
+            const models = agentManager.listModels();
+            
+            console.log(chalk.cyan('\n🤖 Available Models:\n'));
+            models.forEach(m => {
+                const current = config.defaultModel === m.id ? chalk.green(' ← current') : '';
+                console.log(`  ${m.id} (${m.provider})${current}`);
+            });
+            console.log('');
+            return;
+        }
+        
+        if (options.set) {
+            config.defaultModel = options.set;
+            saveConfig(config);
+            console.log(chalk.green(`✓ Default model set to: ${options.set}\n`));
+            return;
+        }
+        
+        if (options.get) {
+            const model = config.defaultModel || 'copilot-gpt4';
+            console.log(chalk.cyan(`Current model: ${model}\n`));
+            return;
+        }
+        
+        // Show help
+        console.log(chalk.cyan('\n🎯 Model Manager\n'));
+        console.log('Options:');
+        console.log('  --list, -l           List all available models');
+        console.log('  --set <model>, -s    Set default model');
+        console.log('  --get, -g            Show current default\n');
+    });
+
