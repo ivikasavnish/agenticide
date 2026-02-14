@@ -57,26 +57,25 @@ class AIAgentManager {
     }
 
     /**
-     * Initialize Claude agent via ACP
+     * Initialize Claude agent
      */
     async initClaudeAgent() {
         try {
-            const claudePath = await this.findClaudePath();
-            if (!claudePath) {
-                throw new Error('Claude CLI not found. Install from https://claude.ai');
+            // Use proper ACP client
+            const { ACPClient } = require('./acpClient');
+            const acpClient = new ACPClient();
+            
+            const success = await acpClient.initClaudeAgent();
+            if (success) {
+                this.agents.set('claude', {
+                    type: 'acp',
+                    model: 'claude-3-sonnet',
+                    acpClient
+                });
+                return true;
             }
-
-            const agent = spawn(claudePath, ['--acp'], {
-                stdio: ['pipe', 'pipe', 'pipe']
-            });
-
-            this.agents.set('claude', { 
-                process: agent, 
-                type: 'acp',
-                model: 'claude-3-sonnet'
-            });
-
-            return true;
+            
+            return false;
         } catch (error) {
             console.error('Failed to initialize Claude:', error.message);
             return false;
@@ -88,27 +87,25 @@ class AIAgentManager {
      */
     async initCopilotAgent() {
         try {
-            // Check if GitHub CLI is installed
-            const ghPath = await this.findCommand('gh');
-            if (!ghPath) {
-                throw new Error('GitHub CLI not found. Install: brew install gh');
+            // Try using proper ACP client first
+            const { ACPClient } = require('./acpClient');
+            const acpClient = new ACPClient();
+            
+            const success = await acpClient.initCopilotAgent();
+            if (success) {
+                this.agents.set('copilot', {
+                    type: 'acp',
+                    model: 'copilot-gpt4',
+                    acpClient
+                });
+                return true;
             }
-
-            // Check if copilot extension is installed
-            const { execSync } = require('child_process');
-            try {
-                execSync('gh copilot --version', { stdio: 'pipe' });
-            } catch {
-                throw new Error('GitHub Copilot extension not found. Install: gh extension install github/gh-copilot');
-            }
-
-            this.agents.set('copilot', {
-                type: 'gh-copilot',
-                model: 'copilot-gpt4',
-                command: 'gh'
-            });
-
-            return true;
+            
+            // Fallback: direct API approach (if available)
+            console.log('ACP Copilot not available, trying alternative...');
+            
+            // For now, just mark as unavailable
+            return false;
         } catch (error) {
             console.error('Failed to initialize Copilot:', error.message);
             return false;
@@ -177,17 +174,14 @@ class AIAgentManager {
 
         let response;
         switch (agent.type) {
-            case 'gh-copilot':
-                response = await this.sendToCopilot(message, agent, options);
+            case 'acp':
+                response = await this.sendToACP(message, agent, options);
                 break;
             case 'openai-api':
                 response = await this.sendToOpenAI(message, agent, options);
                 break;
             case 'ollama':
                 response = await this.sendToOllama(message, agent, options);
-                break;
-            case 'acp':
-                response = await this.sendToACP(message, agent, options);
                 break;
             default:
                 throw new Error(`Unknown agent type: ${agent.type}`);
@@ -205,25 +199,24 @@ class AIAgentManager {
     }
 
     /**
-     * Send message to GitHub Copilot
+     * Send message to ACP agent (Copilot or Claude)
      */
-    async sendToCopilot(message, agent, options) {
-        const { execSync } = require('child_process');
-        
+    async sendToACP(message, agent, options) {
+        if (!agent.acpClient) {
+            throw new Error('ACP client not initialized');
+        }
+
         try {
-            // Use gh copilot explain or suggest based on context
-            const command = options.explain 
-                ? `gh copilot explain "${message}"`
-                : `gh copilot suggest "${message}"`;
+            // Build context
+            const context = options.context || {};
             
-            const result = execSync(command, { 
-                encoding: 'utf8',
-                maxBuffer: 10 * 1024 * 1024 
-            });
+            // Send via ACP
+            const agentName = this.activeAgent;
+            const response = await agent.acpClient.sendMessage(agentName, message, context);
             
-            return result.trim();
+            return response;
         } catch (error) {
-            throw new Error(`Copilot error: ${error.message}`);
+            throw new Error(`ACP error: ${error.message}`);
         }
     }
 
@@ -293,40 +286,12 @@ class AIAgentManager {
     }
 
     /**
-     * Send message to ACP agent (Claude)
+     * Send message to ACP agent (Claude - legacy method, use sendToACP instead)
      */
-    async sendToACP(message, agent, options) {
-        // ACP implementation using JSON-RPC
-        const request = {
-            jsonrpc: '2.0',
-            method: 'chat.send',
-            params: {
-                message,
-                model: agent.model,
-                history: this.conversationHistory.slice(-10)
-            },
-            id: Date.now()
-        };
-
-        return new Promise((resolve, reject) => {
-            let response = '';
-            
-            agent.process.stdout.on('data', (data) => {
-                response += data.toString();
-                try {
-                    const parsed = JSON.parse(response);
-                    if (parsed.result) {
-                        resolve(parsed.result.content);
-                    }
-                } catch {
-                    // Still accumulating response
-                }
-            });
-
-            agent.process.stdin.write(JSON.stringify(request) + '\n');
-            
-            setTimeout(() => reject(new Error('ACP timeout')), 30000);
-        });
+    async sendToACPLegacy(message, agent, options) {
+        // This is kept for backwards compatibility
+        // New code should use sendToACP which works for both Copilot and Claude
+        return this.sendToACP(message, agent, options);
     }
 
     /**
