@@ -218,71 +218,279 @@ program
         console.log(chalk.gray('\nRun: agenticide chat'));
     });
 
-// Chat command
+// Chat command with multi-agent support
 program
     .command('chat')
-    .description('Start interactive AI chat')
-    .option('-p, --provider <provider>', 'AI provider (claude|copilot|auto)', 'auto')
+    .description('Start interactive AI chat with multiple agents')
+    .option('-p, --provider <provider>', 'AI provider (claude|copilot|openai|local|auto)', 'copilot')
+    .option('-m, --model <model>', 'Specific model to use')
+    .option('--list-models', 'List all available models')
+    .option('--no-context', 'Disable context sharing')
     .action(async (options) => {
-        console.log(chalk.cyan(banner));
+        const { AIAgentManager } = require('./aiAgents');
+        const Database = require('better-sqlite3');
         
-        // Initialize ACP client
-        acpClient = new ACPClient();
-        await acpClient.initializeClaudeAgent();
+        const agentManager = new AIAgentManager();
         
-        console.log(chalk.green('\n💬 Chat started. Type your message (or "exit" to quit)\n'));
-        
-        // Interactive chat loop
-        while (true) {
-            const { message } = await inquirer.prompt([
-                {
-                    type: 'input',
-                    name: 'message',
-                    message: chalk.cyan('You:'),
-                    prefix: ''
+        // List models and exit
+        if (options.listModels) {
+            const models = agentManager.listModels();
+            console.log(chalk.cyan('\n🤖 Available AI Models:\n'));
+            
+            let currentCategory = '';
+            models.forEach(m => {
+                if (m.category !== currentCategory) {
+                    currentCategory = m.category;
+                    console.log(chalk.bold(`\n${currentCategory.toUpperCase()}:`));
                 }
-            ]);
-            
-            if (message.toLowerCase() === 'exit' || message.toLowerCase() === 'quit') {
-                break;
-            }
-            
-            if (!message.trim()) {
-                continue;
-            }
-            
-            const spinner = ora('Thinking...').start();
-            
-            try {
-                // Get context
-                const context = {
-                    cwd: process.cwd(),
-                    files: fs.readdirSync(process.cwd()).filter(f => !f.startsWith('.')).slice(0, 10)
-                };
-                
-                // Send to agent
-                const response = await acpClient.sendPrompt('claude', message, context);
-                
-                spinner.stop();
-                console.log(chalk.green('\n🤖 Claude:\n'));
-                console.log(boxen(response, {
-                    padding: 1,
-                    margin: 1,
-                    borderStyle: 'round',
-                    borderColor: 'green'
-                }));
-                console.log('');
-            } catch (error) {
-                spinner.fail('Error: ' + error.message);
-            }
+                const tier = m.tier === 'premium' ? chalk.yellow('⭐') : 
+                            m.tier === 'local' ? chalk.green('💻') : 
+                            chalk.blue('✓');
+                console.log(`  ${tier} ${m.id.padEnd(20)} - ${m.name}`);
+            });
+            console.log('\nUsage: agenticide chat --provider <provider> --model <model>');
+            console.log('');
+            return;
         }
         
-        console.log(chalk.yellow('\nGoodbye! 👋\n'));
+        console.log(chalk.cyan(banner));
+        console.log(chalk.cyan('\n💬 Initializing AI chat...\n'));
         
-        if (acpClient) {
-            acpClient.dispose();
+        const spinner = ora('Setting up agents...').start();
+        
+        try {
+            // Initialize requested provider
+            let initialized = false;
+            const provider = options.provider.toLowerCase();
+            
+            if (provider === 'copilot' || provider === 'auto') {
+                initialized = await agentManager.initCopilotAgent();
+                if (initialized) {
+                    agentManager.setActiveAgent('copilot');
+                    spinner.succeed('GitHub Copilot ready');
+                }
+            }
+            
+            if (!initialized && (provider === 'claude' || provider === 'auto')) {
+                initialized = await agentManager.initClaudeAgent();
+                if (initialized) {
+                    agentManager.setActiveAgent('claude');
+                    spinner.succeed('Claude ready');
+                }
+            }
+            
+            if (!initialized && (provider === 'openai')) {
+                initialized = await agentManager.initOpenAIAgent();
+                if (initialized) {
+                    agentManager.setActiveAgent('openai');
+                    spinner.succeed('OpenAI ready');
+                }
+            }
+            
+            if (!initialized && (provider === 'local')) {
+                const model = options.model || 'codellama';
+                initialized = await agentManager.initLocalAgent(model);
+                if (initialized) {
+                    agentManager.setActiveAgent('local');
+                    spinner.succeed(`Local model (${model}) ready`);
+                }
+            }
+            
+            if (!initialized) {
+                spinner.fail('No AI agents available');
+                console.log(chalk.yellow('\nTry:'));
+                console.log('  • Install GitHub CLI: brew install gh');
+                console.log('  • Install Copilot: gh extension install github/gh-copilot');
+                console.log('  • Install Claude: https://claude.ai/download');
+                console.log('  • Set OPENAI_API_KEY for OpenAI');
+                console.log('  • Install Ollama: brew install ollama (for local models)');
+                return;
+            }
+            
+            // Load context if enabled
+            let projectContext = null;
+            if (options.context !== false) {
+                try {
+                    const dbPath = path.join(CONFIG_DIR, 'cli.db');
+                    const db = new Database(dbPath);
+                    
+                    // Get project symbols
+                    const symbols = db.prepare(`
+                        SELECT name, kind, file_path 
+                        FROM code_symbols 
+                        WHERE file_path LIKE ? 
+                        LIMIT 50
+                    `).all(`%${process.cwd()}%`);
+                    
+                    // Get tasks
+                    const tasks = loadTasks();
+                    
+                    projectContext = {
+                        cwd: process.cwd(),
+                        symbols: symbols.length,
+                        tasks: tasks.length,
+                        pendingTasks: tasks.filter(t => !t.completed).length,
+                        topSymbols: symbols.slice(0, 10).map(s => `${s.name} (${s.kind})`)
+                    };
+                    
+                    db.close();
+                } catch (error) {
+                    console.log(chalk.gray('Note: Context sharing unavailable'));
+                }
+            }
+            
+            // Show status
+            const status = agentManager.getStatus();
+            console.log(chalk.cyan('\n📊 Active Agents:\n'));
+            for (const [name, info] of Object.entries(status)) {
+                const active = info.active ? chalk.green('✓ Active') : chalk.gray('  Ready');
+                console.log(`  ${active} ${name.padEnd(10)} - ${info.model}`);
+            }
+            
+            if (projectContext) {
+                console.log(chalk.cyan('\n📦 Context Loaded:\n'));
+                console.log(`  ${chalk.gray('Directory:')} ${projectContext.cwd}`);
+                console.log(`  ${chalk.gray('Symbols:')} ${projectContext.symbols} indexed`);
+                console.log(`  ${chalk.gray('Tasks:')} ${projectContext.pendingTasks}/${projectContext.tasks} pending`);
+            }
+            
+            // Interactive chat
+            console.log(chalk.green('\n💬 Chat started. Commands:'));
+            console.log(chalk.gray('  /agent <name>     - Switch agent'));
+            console.log(chalk.gray('  /model <model>    - Switch model'));
+            console.log(chalk.gray('  /status           - Show agent status'));
+            console.log(chalk.gray('  /context          - Show context'));
+            console.log(chalk.gray('  /tasks            - Show tasks'));
+            console.log(chalk.gray('  /search <query>   - Search code'));
+            console.log(chalk.gray('  exit              - Quit\n'));
+            
+            // Interactive chat loop
+            while (true) {
+                const { message } = await inquirer.default.prompt([
+                    {
+                        type: 'input',
+                        name: 'message',
+                        message: chalk.cyan('You:'),
+                        prefix: ''
+                    }
+                ]);
+                
+                const trimmed = message.trim();
+                
+                if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
+                    break;
+                }
+                
+                // Handle commands
+                if (trimmed.startsWith('/')) {
+                    const [cmd, ...args] = trimmed.slice(1).split(' ');
+                    
+                    if (cmd === 'agent') {
+                        try {
+                            agentManager.setActiveAgent(args[0]);
+                            console.log(chalk.green(`✓ Switched to ${args[0]}\n`));
+                        } catch (error) {
+                            console.log(chalk.red(`✗ ${error.message}\n`));
+                        }
+                    } else if (cmd === 'model') {
+                        console.log(chalk.yellow('Model switching in current session not yet supported\n'));
+                    } else if (cmd === 'status') {
+                        const status = agentManager.getStatus();
+                        console.log(chalk.cyan('\n📊 Agent Status:\n'));
+                        for (const [name, info] of Object.entries(status)) {
+                            const active = info.active ? chalk.green('✓') : ' ';
+                            console.log(`  ${active} ${name}: ${info.model}`);
+                        }
+                        console.log('');
+                    } else if (cmd === 'context' && projectContext) {
+                        console.log(chalk.cyan('\n📦 Project Context:\n'));
+                        console.log(chalk.gray('Directory:'), projectContext.cwd);
+                        console.log(chalk.gray('Symbols:'), projectContext.symbols);
+                        console.log(chalk.gray('Top symbols:'));
+                        projectContext.topSymbols.forEach(s => {
+                            console.log(chalk.gray(`  • ${s}`));
+                        });
+                        console.log('');
+                    } else if (cmd === 'tasks') {
+                        const tasks = loadTasks();
+                        console.log(chalk.cyan('\n📋 Tasks:\n'));
+                        if (tasks.length === 0) {
+                            console.log(chalk.gray('  No tasks\n'));
+                        } else {
+                            tasks.forEach(t => {
+                                const status = t.completed ? chalk.green('✓') : chalk.yellow('○');
+                                console.log(`  ${status} ${t.description}`);
+                            });
+                            console.log('');
+                        }
+                    } else if (cmd === 'search') {
+                        const query = args.join(' ');
+                        if (query) {
+                            try {
+                                const Database = require('better-sqlite3');
+                                const SemanticSearch = require('../agenticide-core/semanticSearch');
+                                const dbPath = path.join(CONFIG_DIR, 'cli.db');
+                                const db = new Database(dbPath);
+                                const search = new SemanticSearch(db);
+                                
+                                const results = search.search(query, 3);
+                                console.log(chalk.cyan(`\n🔎 Search: "${query}"\n`));
+                                results.forEach((r, i) => {
+                                    console.log(chalk.bold(`${i + 1}. ${r.symbol_name}`));
+                                    console.log(chalk.gray(`   ${r.file_path}`));
+                                });
+                                console.log('');
+                                db.close();
+                            } catch (error) {
+                                console.log(chalk.red(`Search error: ${error.message}\n`));
+                            }
+                        }
+                    } else {
+                        console.log(chalk.yellow(`Unknown command: ${cmd}\n`));
+                    }
+                    
+                    continue;
+                }
+                
+                // Send message to agent
+                if (trimmed) {
+                    const thinking = ora('Thinking...').start();
+                    
+                    try {
+                        // Build context for message
+                        const messageContext = projectContext ? {
+                            ...projectContext,
+                            tasks: loadTasks()
+                        } : { cwd: process.cwd() };
+                        
+                        const response = await agentManager.sendMessage(trimmed, {
+                            context: messageContext
+                        });
+                        
+                        thinking.stop();
+                        console.log(chalk.green(`\n🤖 ${agentManager.activeAgent}:\n`));
+                        console.log(boxen(response, {
+                            padding: 1,
+                            margin: 0,
+                            borderStyle: 'round',
+                            borderColor: 'green'
+                        }));
+                        console.log('');
+                    } catch (error) {
+                        thinking.fail(`Error: ${error.message}`);
+                        console.log('');
+                    }
+                }
+            }
+            
+            console.log(chalk.yellow('\nGoodbye! 👋\n'));
+            agentManager.dispose();
+            process.exit(0);
+            
+        } catch (error) {
+            spinner.fail('Failed to initialize');
+            console.error(chalk.red(`\n${error.message}\n`));
         }
-        process.exit(0);
     });
 
 // Task commands
