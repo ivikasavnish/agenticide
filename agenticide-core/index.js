@@ -1,11 +1,12 @@
 const ProjectManager = require('./projectManager');
-const ProjectIndex = require('./projectIndex');
-const TerminalManager = require('./terminalManager');
-const APITester = require('./apiTester');
+const CodeAnalyzer = require('./codeAnalyzer');
+const ProjectTemplates = require('./projectTemplates');
 
 module.exports = {
     ProjectManager,
-    ProjectIndex,
-    TerminalManager,
-    APITester
+    ProjectIndex: require('./projectIndex'),
+    TerminalManager: require('./terminalManager'),
+    APITester: require('./apiTester'),
+    CodeAnalyzer,
+    ProjectTemplates
 };
