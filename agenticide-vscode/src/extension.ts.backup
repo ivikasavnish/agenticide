@@ -1,0 +1,263 @@
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+
+// Import WASM module
+const wasm = require('../wasm/context_manager.js');
+
+interface TodoItem {
+    id: number;
+    description: string;
+    status: string;
+    created_at: string;
+    completed_at?: string;
+    assigned_agent?: string;
+}
+
+export async function activate(context: vscode.ExtensionContext) {
+    console.log('Agenticide extension is now active!');
+    
+    // Initialize WASM module
+    await wasm.default();
+    
+    // Create TreeView providers
+    const todoProvider = new TodoTreeProvider();
+    vscode.window.registerTreeDataProvider('agenticide-todos', todoProvider);
+    
+    const contextProvider = new ContextTreeProvider();
+    vscode.window.registerTreeDataProvider('agenticide-context', contextProvider);
+    
+    // Command: Initialize project
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.init', async () => {
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                vscode.window.showErrorMessage('No workspace folder open');
+                return;
+            }
+            
+            try {
+                await wasm.init_project_wasm(workspaceFolder.uri.fsPath);
+                vscode.window.showInformationMessage('✅ Agenticide initialized!');
+                todoProvider.refresh();
+                contextProvider.refresh();
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to initialize: ${error}`);
+            }
+        })
+    );
+    
+    // Command: Add TODO
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.addTodo', async () => {
+            const description = await vscode.window.showInputBox({
+                prompt: 'Enter TODO description',
+                placeHolder: 'Fix bug in user authentication...'
+            });
+            
+            if (!description) return;
+            
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                vscode.window.showErrorMessage('No workspace folder open');
+                return;
+            }
+            
+            try {
+                await wasm.add_todo_wasm(workspaceFolder.uri.fsPath, description);
+                vscode.window.showInformationMessage(`✅ TODO added: ${description}`);
+                todoProvider.refresh();
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to add TODO: ${error}`);
+            }
+        })
+    );
+    
+    // Command: Complete TODO
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.completeTodo', async (item: TodoTreeItem) => {
+            try {
+                const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                if (!workspaceFolder) return;
+                
+                await wasm.complete_todo_wasm(workspaceFolder.uri.fsPath, item.todo.id);
+                vscode.window.showInformationMessage(`✅ Completed: ${item.todo.description}`);
+                todoProvider.refresh();
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to complete TODO: ${error}`);
+            }
+        })
+    );
+    
+    // Command: Refresh
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.refresh', () => {
+            todoProvider.refresh();
+            contextProvider.refresh();
+        })
+    );
+}
+
+class ContextTreeProvider implements vscode.TreeDataProvider<ContextTreeItem> {
+    private _onDidChangeTreeData = new vscode.EventEmitter<ContextTreeItem | undefined | null | void>();
+    readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+    
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
+    }
+    
+    getTreeItem(element: ContextTreeItem): vscode.TreeItem {
+        return element;
+    }
+    
+    async getChildren(element?: ContextTreeItem): Promise<ContextTreeItem[]> {
+        if (!vscode.workspace.workspaceFolders) {
+            return [];
+        }
+        
+        const workspaceFolder = vscode.workspace.workspaceFolders[0];
+        const contextPath = path.join(workspaceFolder.uri.fsPath, '.context.json');
+        
+        if (!fs.existsSync(contextPath)) {
+            return [new ContextTreeItem(
+                '⚠️ Not initialized',
+                vscode.TreeItemCollapsibleState.None,
+                'info'
+            )];
+        }
+        
+        try {
+            const contextData = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+            const items: ContextTreeItem[] = [];
+            
+            // Show project info
+            items.push(new ContextTreeItem(
+                `📁 ${path.basename(workspaceFolder.uri.fsPath)}`,
+                vscode.TreeItemCollapsibleState.None,
+                'project'
+            ));
+            
+            // Show file count if available
+            if (contextData.files && contextData.files.length > 0) {
+                items.push(new ContextTreeItem(
+                    `📄 ${contextData.files.length} files tracked`,
+                    vscode.TreeItemCollapsibleState.None,
+                    'files'
+                ));
+            }
+            
+            // Show TODO count
+            if (contextData.todos) {
+                const pending = contextData.todos.filter((t: any) => t.status === 'pending').length;
+                const completed = contextData.todos.filter((t: any) => t.status === 'completed').length;
+                items.push(new ContextTreeItem(
+                    `✓ ${completed} / ${pending + completed} TODOs done`,
+                    vscode.TreeItemCollapsibleState.None,
+                    'stats'
+                ));
+            }
+            
+            return items;
+        } catch (error) {
+            console.error('Failed to load context:', error);
+            return [];
+        }
+    }
+}
+
+class ContextTreeItem extends vscode.TreeItem {
+    constructor(
+        public readonly label: string,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+        public readonly contextValue: string
+    ) {
+        super(label, collapsibleState);
+        
+        if (contextValue === 'info') {
+            this.iconPath = new vscode.ThemeIcon('info');
+        } else if (contextValue === 'project') {
+            this.iconPath = new vscode.ThemeIcon('folder');
+        } else if (contextValue === 'files') {
+            this.iconPath = new vscode.ThemeIcon('files');
+        } else if (contextValue === 'stats') {
+            this.iconPath = new vscode.ThemeIcon('graph');
+        }
+    }
+}
+
+class TodoTreeProvider implements vscode.TreeDataProvider<TodoTreeItem> {
+    private _onDidChangeTreeData = new vscode.EventEmitter<TodoTreeItem | undefined | null | void>();
+    readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+    
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
+    }
+    
+    getTreeItem(element: TodoTreeItem): vscode.TreeItem {
+        return element;
+    }
+    
+    async getChildren(element?: TodoTreeItem): Promise<TodoTreeItem[]> {
+        if (!vscode.workspace.workspaceFolders) {
+            return [];
+        }
+        
+        const workspaceFolder = vscode.workspace.workspaceFolders[0];
+        const contextPath = path.join(workspaceFolder.uri.fsPath, '.context.json');
+        
+        // Check if .context.json exists
+        if (!fs.existsSync(contextPath)) {
+            return [new TodoTreeItem(
+                '⚠️ Not initialized - Run "Agenticide: Initialize Project"',
+                vscode.TreeItemCollapsibleState.None,
+                { id: 0, description: '', status: 'info', created_at: '' }
+            )];
+        }
+        
+        try {
+            const todos = await wasm.list_todos_wasm(workspaceFolder.uri.fsPath);
+            
+            if (todos.length === 0) {
+                return [new TodoTreeItem(
+                    '📝 No TODOs yet - Add one with "Agenticide: Add TODO"',
+                    vscode.TreeItemCollapsibleState.None,
+                    { id: 0, description: '', status: 'info', created_at: '' }
+                )];
+            }
+            
+            return todos.map((todo: TodoItem) => new TodoTreeItem(
+                todo.description,
+                vscode.TreeItemCollapsibleState.None,
+                todo
+            ));
+        } catch (error) {
+            console.error('Failed to load TODOs:', error);
+            return [];
+        }
+    }
+}
+
+class TodoTreeItem extends vscode.TreeItem {
+    constructor(
+        public readonly label: string,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+        public readonly todo: TodoItem
+    ) {
+        super(label, collapsibleState);
+        
+        if (todo.status === 'info') {
+            this.iconPath = new vscode.ThemeIcon('info');
+            this.contextValue = 'info';
+        } else if (todo.status === 'completed') {
+            this.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
+            this.contextValue = 'completed';
+            this.description = '✓ Completed';
+        } else {
+            this.iconPath = new vscode.ThemeIcon('circle-outline');
+            this.contextValue = 'pending';
+            this.tooltip = `Created: ${new Date(todo.created_at).toLocaleString()}`;
+        }
+    }
+}
+
+export function deactivate() {}

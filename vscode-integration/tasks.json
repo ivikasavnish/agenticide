@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Agenticide: Show Context",
+      "type": "shell",
+      "command": "${env:HOME}/.agenticide/context_manager",
+      "args": ["show", "${workspaceFolder}"]
+    },
+    {
+      "label": "Agenticide: List TODOs",
+      "type": "shell",
+      "command": "${env:HOME}/.agenticide/context_manager",
+      "args": ["list-todos", "${workspaceFolder}"]
+    },
+    {
+      "label": "Agenticide: AI Suggestions",
+      "type": "shell",
+      "command": "${env:HOME}/.agenticide/context_manager",
+      "args": ["suggest", "${workspaceFolder}"]
+    },
+    {
+      "label": "Agenticide: Start LSP",
+      "type": "shell",
+      "command": "${env:HOME}/.agenticide/context_manager",
+      "args": ["tool", "--tool", "lsp", "${workspaceFolder}"]
+    }
+  ]
+}

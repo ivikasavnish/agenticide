@@ -1,0 +1,54 @@
+# Node modules
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+build/
+out/
+*.vsix
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+
+# SQLite databases
+*.db
+*.sqlite
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Compiled binaries
+*.wasm
+*.node
+
+# macOS
+.AppleDouble
+.LSOverride
+
+# User config
+.agenticide/
+~/.agenticide/
+
+# Test coverage
+coverage/
+.nyc_output/

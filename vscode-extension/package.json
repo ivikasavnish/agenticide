@@ -1,0 +1,39 @@
+{
+  "name": "agenticide",
+  "displayName": "Agenticide",
+  "description": "Thin wrapper for agenticide CLI tools",
+  "version": "0.1.0",
+  "publisher": "agenticide",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {"command": "agenticide.showContext", "title": "Agenticide: Show Context"},
+      {"command": "agenticide.addTodo", "title": "Agenticide: Add TODO"},
+      {"command": "agenticide.suggest", "title": "Agenticide: AI Suggestions"},
+      {"command": "agenticide.startLsp", "title": "Agenticide: Start LSP"}
+    ],
+    "viewsContainers": {
+      "activitybar": [{"id": "agenticide", "title": "Agenticide", "icon": "$(rocket)"}]
+    },
+    "views": {
+      "agenticide": [
+        {"id": "agenticideContext", "name": "Context"},
+        {"id": "agenticideTodos", "name": "TODOs"}
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  }
+}

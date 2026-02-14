@@ -1,0 +1,286 @@
+{
+  "name": "agenticide",
+  "displayName": "Agenticide - AI Coding Assistant",
+  "description": "Multi-agent AI pair programmer with chat, code suggestions, and task management",
+  "version": "3.0.0",
+  "publisher": "agenticide",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension.js",
+  "icon": "resources/icon.png",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "agenticide-sidebar",
+          "title": "Agenticide AI",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "agenticide-sidebar": [
+        {
+          "type": "webview",
+          "id": "agenticide-chat",
+          "name": "AI Chat"
+        },
+        {
+          "id": "agenticide-tasks",
+          "name": "Tasks"
+        },
+        {
+          "id": "agenticide-context",
+          "name": "Context"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "agenticide.init",
+        "title": "Agenticide: Initialize Project",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "agenticide.chat",
+        "title": "Agenticide: Open AI Chat",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "agenticide.chatSidebar",
+        "title": "Agenticide: Open AI Chat (Sidebar)",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "agenticide.chatEditor",
+        "title": "Agenticide: Open AI Chat (Editor)",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "agenticide.explainCode",
+        "title": "Agenticide: Explain Code",
+        "icon": "$(question)"
+      },
+      {
+        "command": "agenticide.fixCode",
+        "title": "Agenticide: Fix This Code",
+        "icon": "$(wrench)"
+      },
+      {
+        "command": "agenticide.addTask",
+        "title": "Agenticide: Add Task",
+        "icon": "$(add)"
+      },
+      {
+        "command": "agenticide.toggleTask",
+        "title": "Agenticide: Toggle Task",
+        "icon": "$(check)"
+      },
+      {
+        "command": "agenticide.deleteTask",
+        "title": "Agenticide: Delete Task",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "agenticide.refresh",
+        "title": "Agenticide: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "agenticide.generateTests",
+        "title": "Agenticide: Generate Tests",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "agenticide.refactor",
+        "title": "Agenticide: Refactor Code",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "agenticide.addComments",
+        "title": "Agenticide: Add Comments",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "agenticide.focusMode",
+        "title": "Agenticide: Focus Mode (Disable Other Extensions)",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "agenticide.restoreExtensions",
+        "title": "Agenticide: Restore Other Extensions",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "agenticide.toggleFocusMode",
+        "title": "Agenticide: Toggle Focus Mode",
+        "icon": "$(eye-closed)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "agenticide.refresh",
+          "when": "view == agenticide-tasks",
+          "group": "navigation"
+        },
+        {
+          "command": "agenticide.addTask",
+          "when": "view == agenticide-tasks",
+          "group": "navigation"
+        },
+        {
+          "command": "agenticide.focusMode",
+          "when": "view == agenticide-context",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "agenticide.toggleTask",
+          "when": "view == agenticide-tasks && viewItem == task"
+        },
+        {
+          "command": "agenticide.deleteTask",
+          "when": "view == agenticide-tasks && viewItem == task"
+        }
+      ],
+      "editor/context": [
+        {
+          "submenu": "agenticide.editorMenu",
+          "group": "1_modification"
+        }
+      ],
+      "agenticide.editorMenu": [
+        {
+          "command": "agenticide.explainCode",
+          "group": "1_ai"
+        },
+        {
+          "command": "agenticide.fixCode",
+          "group": "1_ai"
+        },
+        {
+          "command": "agenticide.refactor",
+          "group": "2_refactor"
+        },
+        {
+          "command": "agenticide.generateTests",
+          "group": "3_generate"
+        },
+        {
+          "command": "agenticide.addComments",
+          "group": "3_generate"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "agenticide.editorMenu",
+        "label": "Agenticide AI"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "agenticide.chatEditor",
+        "key": "ctrl+shift+a",
+        "mac": "cmd+shift+a"
+      },
+      {
+        "command": "agenticide.explainCode",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorHasSelection"
+      }
+    ]
+  },
+  "configuration": {
+    "title": "Agenticide",
+    "properties": {
+      "agenticide.useClaudeCodeACP": {
+        "type": "boolean",
+        "default": true,
+        "description": "Use Claude Code via ACP (Agent Client Protocol) for agentic tasks"
+      },
+      "agenticide.claudeApiKey": {
+        "type": "string",
+        "default": "",
+        "description": "Claude API key fallback (if Claude Code not installed). Get from https://console.anthropic.com/"
+      },
+      "agenticide.defaultAIProvider": {
+        "type": "string",
+        "default": "auto",
+        "enum": [
+          "auto",
+          "claude",
+          "copilot"
+        ],
+        "enumDescriptions": [
+          "Automatically select best provider based on task",
+          "Always use Claude for all requests",
+          "Always use GitHub Copilot for all requests"
+        ],
+        "description": "Default AI provider to use"
+      },
+      "agenticide.chatLocation": {
+        "type": "string",
+        "default": "editor",
+        "enum": [
+          "editor",
+          "sidebar"
+        ],
+        "enumDescriptions": [
+          "Open chat in editor (right side)",
+          "Open chat in sidebar panel"
+        ],
+        "description": "Where to open the AI chat interface"
+      },
+      "agenticide.chatEditorColumn": {
+        "type": "string",
+        "default": "beside",
+        "enum": [
+          "beside",
+          "one",
+          "two",
+          "three"
+        ],
+        "enumDescriptions": [
+          "Open beside current editor",
+          "Open in first column",
+          "Open in second column",
+          "Open in third column"
+        ],
+        "description": "Which editor column to use for chat"
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@types/vscode": "^1.109.0",
+    "@vscode/vsce": "^3.7.1",
+    "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agenticide/agenticide"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.14.1",
+    "@modelcontextprotocol/sdk": "^1.26.0"
+  }
+}

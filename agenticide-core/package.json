@@ -1,0 +1,27 @@
+{
+  "name": "@agenticide/core",
+  "version": "3.0.0",
+  "description": "Project-centric AI coding tooling with indexing, terminals, and API testing",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "project-manager",
+    "terminal",
+    "api-testing",
+    "indexing",
+    "dev-tools"
+  ],
+  "author": "Agenticide Team",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "chokidar": "^5.0.0",
+    "fast-glob": "^3.3.3",
+    "glob": "^13.0.3",
+    "node-fetch": "^2.7.0",
+    "terminal-kit": "^3.1.2"
+  }
+}

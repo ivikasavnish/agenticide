@@ -1,0 +1,539 @@
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+import { ChatViewProvider } from './chatView';
+import { TaskTreeProvider, TaskDecorationProvider } from './taskProvider';
+
+const wasm = require('../wasm/context_manager.js');
+
+let chatProvider: ChatViewProvider;
+let focusModeStatusBar: vscode.StatusBarItem;
+
+export async function activate(context: vscode.ExtensionContext) {
+    console.log('🚀 Agenticide AI Assistant is now active!');
+    
+    try {
+        // Initialize WASM module
+        await wasm.default();
+        
+        // Create Status Bar Item for Focus Mode
+        focusModeStatusBar = vscode.window.createStatusBarItem(
+            vscode.StatusBarAlignment.Right,
+            100
+        );
+        focusModeStatusBar.command = 'agenticide.toggleFocusMode';
+        focusModeStatusBar.text = '$(extensions) All Extensions';
+        focusModeStatusBar.tooltip = 'Focus Mode: OFF - Click to disable other extensions';
+        focusModeStatusBar.show();
+        context.subscriptions.push(focusModeStatusBar);
+    
+        // Register Chat View Provider
+        chatProvider = new ChatViewProvider(context.extensionUri);
+        context.subscriptions.push(
+            vscode.window.registerWebviewViewProvider(
+                ChatViewProvider.viewType,
+                chatProvider
+            )
+        );
+        
+        // Register Task Tree Provider with checkboxes
+        const taskProvider = new TaskTreeProvider();
+        const taskTreeView = vscode.window.createTreeView('agenticide-tasks', {
+            treeDataProvider: taskProvider,
+            showCollapseAll: true,
+            canSelectMany: false
+        });
+        context.subscriptions.push(taskTreeView);
+        
+        // Register decoration provider for completed tasks
+        context.subscriptions.push(
+            vscode.window.registerFileDecorationProvider(new TaskDecorationProvider())
+        );
+        
+        // Handle checkbox changes
+        taskTreeView.onDidChangeCheckboxState(async (e) => {
+            for (const [item, state] of e.items) {
+                if (item.contextValue === 'task') {
+                    const isCompleted = state === vscode.TreeItemCheckboxState.Checked;
+                    await toggleTaskCompletion(item.task.id, isCompleted);
+                    taskProvider.refresh();
+                }
+            }
+        });
+        
+        // Register Context Tree Provider
+        const contextProvider = new ContextTreeProvider();
+        vscode.window.registerTreeDataProvider('agenticide-context', contextProvider);
+    
+    // ========== COMMANDS ==========
+    
+    // Initialize Project
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.init', async () => {
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                vscode.window.showErrorMessage('❌ No workspace folder open');
+                return;
+            }
+            
+            try {
+                await wasm.init_project_wasm(workspaceFolder.uri.fsPath);
+                vscode.window.showInformationMessage('✅ Agenticide initialized!');
+                taskProvider.refresh();
+                contextProvider.refresh();
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to initialize: ${error}`);
+            }
+        })
+    );
+    
+    // Open AI Chat
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.chat', () => {
+            vscode.commands.executeCommand('agenticide-chat.focus');
+        })
+    );
+    
+    // Explain Code
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.explainCode', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showWarningMessage('No active editor');
+                return;
+            }
+            
+            const selection = editor.document.getText(editor.selection);
+            if (!selection) {
+                vscode.window.showWarningMessage('No code selected');
+                return;
+            }
+            
+            // Open chat and send message
+            await vscode.commands.executeCommand('agenticide-chat.focus');
+            chatProvider.sendMessage(`Explaining selected code:\n\n\`\`\`${editor.document.languageId}\n${selection}\n\`\`\`\n\nThis code appears to be ${editor.document.languageId}. Here's what it does:\n\n[AI explanation would go here - integrate with your preferred LLM API]`);
+        })
+    );
+    
+    // Fix Code
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.fixCode', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showWarningMessage('No active editor');
+                return;
+            }
+            
+            const selection = editor.document.getText(editor.selection);
+            await vscode.commands.executeCommand('agenticide-chat.focus');
+            chatProvider.sendMessage(`I'll help fix this code. Please integrate an AI model for actual fixes.\n\nCode to fix:\n\`\`\`${editor.document.languageId}\n${selection || 'No code selected'}\n\`\`\``);
+        })
+    );
+    
+    // Generate Tests
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.generateTests', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) return;
+            
+            const selection = editor.document.getText(editor.selection);
+            await vscode.commands.executeCommand('agenticide-chat.focus');
+            chatProvider.sendMessage(`Generating tests for:\n\n\`\`\`${editor.document.languageId}\n${selection || editor.document.getText()}\n\`\`\`\n\n[Integrate AI to generate actual test cases]`);
+        })
+    );
+    
+    // Refactor Code
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.refactor', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) return;
+            
+            const selection = editor.document.getText(editor.selection);
+            await vscode.commands.executeCommand('agenticide-chat.focus');
+            chatProvider.sendMessage(`Let me refactor this code for better readability and performance:\n\n\`\`\`${editor.document.languageId}\n${selection}\n\`\`\`\n\n[AI refactoring suggestions would appear here]`);
+        })
+    );
+    
+    // Add Comments
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.addComments', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) return;
+            
+            const selection = editor.document.getText(editor.selection);
+            await vscode.commands.executeCommand('agenticide-chat.focus');
+            chatProvider.sendMessage(`Adding documentation comments to:\n\n\`\`\`${editor.document.languageId}\n${selection}\n\`\`\`\n\n[AI-generated comments would be inserted here]`);
+        })
+    );
+    
+    // Add Task
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.addTask', async () => {
+            const description = await vscode.window.showInputBox({
+                prompt: 'Enter task description',
+                placeHolder: 'e.g., Fix login bug, Add unit tests, Refactor UserService...'
+            });
+            
+            if (!description) return;
+            
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                vscode.window.showErrorMessage('No workspace folder open');
+                return;
+            }
+            
+            try {
+                await wasm.add_todo_wasm(workspaceFolder.uri.fsPath, description);
+                vscode.window.showInformationMessage(`✅ Task added: ${description}`);
+                taskProvider.refresh();
+                contextProvider.refresh();
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to add task: ${error}`);
+            }
+        })
+    );
+    
+    // Toggle Task (checkbox or command)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.toggleTask', async (item: any) => {
+            if (!item?.task) return;
+            
+            const newStatus = !item.task.completed;
+            await toggleTaskCompletion(item.task.id, newStatus);
+            taskProvider.refresh();
+            contextProvider.refresh();
+        })
+    );
+    
+    // Delete Task
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.deleteTask', async (item: any) => {
+            if (!item?.task) return;
+            
+            const confirm = await vscode.window.showWarningMessage(
+                `Delete task: "${item.task.description}"?`,
+                'Delete', 'Cancel'
+            );
+            
+            if (confirm === 'Delete') {
+                // TODO: Implement delete in WASM
+                vscode.window.showInformationMessage('Delete functionality coming soon');
+            }
+        })
+    );
+    
+    // Refresh All
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.refresh', () => {
+            taskProvider.refresh();
+            contextProvider.refresh();
+        })
+    );
+    
+    // Focus Mode - Disable all other extensions
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.focusMode', async () => {
+            const result = await vscode.window.showWarningMessage(
+                '🎯 Focus Mode: Disable all other extensions?\n\nThis will disable ALL extensions except Agenticide. You can restore them later.',
+                { modal: true },
+                'Enable Focus Mode',
+                'Cancel'
+            );
+            
+            if (result !== 'Enable Focus Mode') return;
+            
+            await enableFocusMode(context);
+        })
+    );
+    
+    // Restore Extensions
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.restoreExtensions', async () => {
+            await restoreExtensions(context);
+        })
+    );
+    
+    // Get Focus Mode Status (internal)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.getFocusModeStatus', async () => {
+            return context.globalState.get('agenticide.focusModeActive', false);
+        })
+    );
+    
+    // Toggle Focus Mode (quick access)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('agenticide.toggleFocusMode', async () => {
+            const isActive = context.globalState.get('agenticide.focusModeActive', false);
+            
+            if (isActive) {
+                await vscode.commands.executeCommand('agenticide.restoreExtensions');
+            } else {
+                await vscode.commands.executeCommand('agenticide.focusMode');
+            }
+            
+            updateFocusModeStatusBar(context);
+        })
+    );
+    
+        // Show welcome message
+        vscode.window.showInformationMessage(
+            '🤖 Agenticide AI Assistant activated! Press Cmd+Shift+A to start chatting.',
+            'Open Chat',
+            'Focus Mode'
+        ).then(selection => {
+            if (selection === 'Open Chat') {
+                vscode.commands.executeCommand('agenticide.chat');
+            } else if (selection === 'Focus Mode') {
+                vscode.commands.executeCommand('agenticide.focusMode');
+            }
+        });
+        
+        // Update status bar based on saved state
+        const isActive = context.globalState.get('agenticide.focusModeActive', false);
+        if (isActive) {
+            focusModeStatusBar.text = '$(eye-closed) Focus Mode';
+            focusModeStatusBar.tooltip = 'Focus Mode: ON - Click to restore extensions';
+            focusModeStatusBar.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        }
+        
+    } catch (error) {
+        console.error('Agenticide activation error:', error);
+        vscode.window.showErrorMessage(`Agenticide failed to activate: ${error}`);
+    }
+}
+
+async function enableFocusMode(context: vscode.ExtensionContext) {
+    const allExtensions = vscode.extensions.all;
+    const disabledExtensions: string[] = [];
+    
+    let count = 0;
+    
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Enabling Focus Mode...",
+        cancellable: false
+    }, async (progress) => {
+        
+        for (const ext of allExtensions) {
+            // Skip Agenticide itself and built-in extensions
+            if (ext.id === 'agenticide.agenticide' || 
+                ext.id.startsWith('vscode.') || 
+                ext.id.startsWith('ms-vscode.')) {
+                continue;
+            }
+            
+            // Store the extension ID
+            disabledExtensions.push(ext.id);
+            count++;
+            
+            progress.report({ 
+                message: `Disabling ${ext.id}...`,
+                increment: (1 / allExtensions.length) * 100
+            });
+        }
+        
+        // Save the list of disabled extensions
+        await context.globalState.update('agenticide.disabledExtensions', disabledExtensions);
+        await context.globalState.update('agenticide.focusModeActive', true);
+    });
+    
+    // Show success message
+    const result = await vscode.window.showInformationMessage(
+        `✅ Focus Mode enabled!\n\n${count} extensions will be disabled after reload.\n\nTo restore them: Run "Agenticide: Restore Other Extensions"`,
+        'Reload Now',
+        'Later'
+    );
+    
+    if (result === 'Reload Now') {
+        // Execute the disable command for each extension
+        for (const extId of disabledExtensions) {
+            try {
+                await vscode.commands.executeCommand('workbench.extensions.disableExtension', extId);
+            } catch (err) {
+                // Silently continue if disable fails
+            }
+        }
+        
+        // Reload window
+        await vscode.commands.executeCommand('workbench.action.reloadWindow');
+    }
+}
+
+async function restoreExtensions(context: vscode.ExtensionContext) {
+    const disabledExtensions = context.globalState.get<string[]>('agenticide.disabledExtensions');
+    
+    if (!disabledExtensions || disabledExtensions.length === 0) {
+        vscode.window.showInformationMessage('No extensions to restore. Focus Mode was not active.');
+        return;
+    }
+    
+    const result = await vscode.window.showInformationMessage(
+        `🔄 Restore ${disabledExtensions.length} extensions?\n\nThis will re-enable all previously disabled extensions.`,
+        { modal: true },
+        'Restore All',
+        'Cancel'
+    );
+    
+    if (result !== 'Restore All') return;
+    
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Restoring extensions...",
+        cancellable: false
+    }, async (progress) => {
+        
+        for (const extId of disabledExtensions) {
+            try {
+                await vscode.commands.executeCommand('workbench.extensions.enableExtension', extId);
+                progress.report({ 
+                    message: `Enabling ${extId}...`,
+                    increment: (1 / disabledExtensions.length) * 100
+                });
+            } catch (err) {
+                // Continue if enable fails
+            }
+        }
+        
+        // Clear saved state
+        await context.globalState.update('agenticide.disabledExtensions', undefined);
+        await context.globalState.update('agenticide.focusModeActive', false);
+    });
+    
+    const reload = await vscode.window.showInformationMessage(
+        '✅ Extensions restored! Reload window to activate them.',
+        'Reload Now',
+        'Later'
+    );
+    
+    if (reload === 'Reload Now') {
+        await vscode.commands.executeCommand('workbench.action.reloadWindow');
+    }
+}
+
+function updateFocusModeStatusBar(context: vscode.ExtensionContext) {
+    const isActive = context.globalState.get('agenticide.focusModeActive', false);
+    
+    if (isActive) {
+        focusModeStatusBar.text = '$(eye-closed) Focus Mode';
+        focusModeStatusBar.tooltip = 'Focus Mode: ON - Click to restore extensions';
+        focusModeStatusBar.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    } else {
+        focusModeStatusBar.text = '$(extensions) All Extensions';
+        focusModeStatusBar.tooltip = 'Focus Mode: OFF - Click to disable other extensions';
+        focusModeStatusBar.backgroundColor = undefined;
+    }
+}
+
+async function toggleTaskCompletion(taskId: number, completed: boolean) {
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (!workspaceFolder) return;
+    
+    try {
+        if (completed) {
+            await wasm.complete_todo_wasm(workspaceFolder.uri.fsPath, taskId);
+        } else {
+            // TODO: Add uncomplete functionality in WASM
+            vscode.window.showWarningMessage('Uncompleting tasks not yet supported');
+        }
+    } catch (error) {
+        vscode.window.showErrorMessage(`Failed to update task: ${error}`);
+    }
+}
+
+// Context Provider
+class ContextTreeProvider implements vscode.TreeDataProvider<ContextTreeItem> {
+    private _onDidChangeTreeData = new vscode.EventEmitter<ContextTreeItem | undefined | null | void>();
+    readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+    
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
+    }
+    
+    getTreeItem(element: ContextTreeItem): vscode.TreeItem {
+        return element;
+    }
+    
+    async getChildren(element?: ContextTreeItem): Promise<ContextTreeItem[]> {
+        if (!vscode.workspace.workspaceFolders) {
+            return [];
+        }
+        
+        const workspaceFolder = vscode.workspace.workspaceFolders[0];
+        const contextPath = path.join(workspaceFolder.uri.fsPath, '.context.json');
+        
+        if (!fs.existsSync(contextPath)) {
+            return [new ContextTreeItem('⚠️ Not initialized', 'info')];
+        }
+        
+        try {
+            const contextData = JSON.parse(fs.readFileSync(contextPath, 'utf8'));
+            const items: ContextTreeItem[] = [];
+            
+            // Project info
+            items.push(new ContextTreeItem(
+                `📁 ${path.basename(workspaceFolder.uri.fsPath)}`,
+                'project'
+            ));
+            
+            // Extension count
+            const allExtensions = vscode.extensions.all.filter(e => 
+                !e.id.startsWith('vscode.') && 
+                !e.id.startsWith('ms-vscode.') &&
+                e.id !== 'agenticide.agenticide'
+            );
+            items.push(new ContextTreeItem(
+                `🧩 ${allExtensions.length} other extensions`,
+                'extensions'
+            ));
+            
+            // File count
+            if (contextData.files && contextData.files.length > 0) {
+                items.push(new ContextTreeItem(
+                    `📄 ${contextData.files.length} files tracked`,
+                    'files'
+                ));
+            }
+            
+            // Task stats
+            if (contextData.todos) {
+                const pending = contextData.todos.filter((t: any) => t.status === 'pending').length;
+                const completed = contextData.todos.filter((t: any) => t.status === 'completed').length;
+                const total = pending + completed;
+                const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+                
+                items.push(new ContextTreeItem(
+                    `✓ ${percentage}% complete (${completed}/${total})`,
+                    'stats'
+                ));
+            }
+            
+            return items;
+        } catch (error) {
+            return [];
+        }
+    }
+}
+
+class ContextTreeItem extends vscode.TreeItem {
+    constructor(
+        public readonly label: string,
+        public readonly contextValue: string
+    ) {
+        super(label, vscode.TreeItemCollapsibleState.None);
+        
+        const icons: Record<string, string> = {
+            'info': 'info',
+            'project': 'folder',
+            'files': 'files',
+            'stats': 'graph',
+            'focus-mode': 'eye-closed',
+            'extensions': 'extensions'
+        };
+        
+        this.iconPath = new vscode.ThemeIcon(icons[contextValue] || 'circle');
+    }
+}
+
+export function deactivate() {
+    console.log('Agenticide deactivated');
+}
