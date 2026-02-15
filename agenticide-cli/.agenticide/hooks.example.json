@@ -1,0 +1,78 @@
+{
+  "hooks": {
+    "post-stub-generation": [
+      {
+        "name": "format-code",
+        "type": "command",
+        "command": "prettier --write {{directory}}/**/*.{js,ts}",
+        "enabled": false,
+        "blocking": false,
+        "onError": "warn"
+      },
+      {
+        "name": "lint-code",
+        "type": "command",
+        "command": "eslint {{directory}}",
+        "enabled": false,
+        "blocking": false,
+        "onError": "warn"
+      }
+    ],
+    "pre-git-commit": [
+      {
+        "name": "run-tests",
+        "type": "command",
+        "command": "npm test",
+        "enabled": false,
+        "blocking": true,
+        "onError": "fail",
+        "timeout": 60000
+      },
+      {
+        "name": "security-scan",
+        "type": "command",
+        "command": "npm audit",
+        "enabled": false,
+        "blocking": false,
+        "onError": "warn"
+      }
+    ],
+    "post-git-commit": [
+      {
+        "name": "notify",
+        "type": "command",
+        "command": "echo '✅ Committed: {{moduleName}}'",
+        "enabled": true,
+        "blocking": false,
+        "onError": "ignore"
+      },
+      {
+        "name": "slack-notify",
+        "type": "script",
+        "script": ".agenticide/hooks/notify-slack.js",
+        "enabled": false,
+        "blocking": false
+      }
+    ],
+    "post-implement": [
+      {
+        "name": "run-unit-tests",
+        "type": "command",
+        "command": "npm run test:unit -- {{file}}",
+        "enabled": false,
+        "blocking": true,
+        "onError": "warn"
+      }
+    ],
+    "post-workflow": [
+      {
+        "name": "generate-docs",
+        "type": "command",
+        "command": "npm run docs:generate",
+        "enabled": false,
+        "blocking": false,
+        "onError": "warn"
+      }
+    ]
+  }
+}

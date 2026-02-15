@@ -5,6 +5,7 @@
 
 const { spawn } = require('child_process');
 const readline = require('readline');
+const { ContextCache } = require('../agenticide-core/contextCache');
 
 // Available AI models
 const MODELS = {
@@ -37,6 +38,11 @@ class AIAgentManager {
         this.agents = new Map();
         this.activeAgent = null;
         this.conversationHistory = [];
+        
+        // Initialize cache
+        this.cache = new ContextCache({
+            debug: process.env.DEBUG_CACHE === 'true'
+        });
     }
 
     /**
@@ -58,56 +64,99 @@ class AIAgentManager {
 
     /**
      * Initialize Claude agent
+     * Auto-detects and starts ACP agent, or falls back to API
      */
     async initClaudeAgent() {
         try {
-            // Use proper ACP client
+            // Try ACP approach first
             const { ACPClient } = require('./acpClient');
             const acpClient = new ACPClient();
             
-            const success = await acpClient.initClaudeAgent();
-            if (success) {
+            const acpSuccess = await acpClient.initClaudeAgent();
+            if (acpSuccess) {
                 this.agents.set('claude', {
                     type: 'acp',
                     model: 'claude-3-sonnet',
                     acpClient
                 });
+                console.log('Using Claude via ACP');
                 return true;
             }
             
-            return false;
+            // Fallback: Use Claude API directly
+            console.log('Claude agent not found, using API fallback...');
+            const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY;
+            
+            if (apiKey) {
+                this.agents.set('claude', {
+                    type: 'claude-api',
+                    model: 'claude-3-sonnet-20240229',
+                    apiKey,
+                    fallback: true
+                });
+                console.log('Using Claude API directly');
+                return true;
+            }
+            
+            throw new Error('Claude not available. Set ANTHROPIC_API_KEY environment variable.');
         } catch (error) {
-            console.error('Failed to initialize Claude:', error.message);
+            console.error('Claude initialization failed:', error.message);
             return false;
         }
     }
 
     /**
      * Initialize GitHub Copilot agent
+     * Auto-detects and starts ACP agent, or falls back to API
      */
     async initCopilotAgent() {
         try {
-            // Try using proper ACP client first
+            // Try ACP approach first
             const { ACPClient } = require('./acpClient');
             const acpClient = new ACPClient();
             
-            const success = await acpClient.initCopilotAgent();
-            if (success) {
+            const acpSuccess = await acpClient.initCopilotAgent();
+            if (acpSuccess) {
                 this.agents.set('copilot', {
                     type: 'acp',
                     model: 'copilot-gpt4',
                     acpClient
                 });
+                console.log('Using GitHub Copilot via ACP');
                 return true;
             }
             
-            // Fallback: direct API approach (if available)
-            console.log('ACP Copilot not available, trying alternative...');
+            // Fallback 1: Try OpenAI API with Copilot-like behavior
+            console.log('GitHub Copilot agent not found, using OpenAI fallback...');
+            const apiKey = process.env.OPENAI_API_KEY || process.env.GITHUB_TOKEN;
             
-            // For now, just mark as unavailable
-            return false;
+            if (apiKey) {
+                this.agents.set('copilot', {
+                    type: 'openai-api',
+                    model: 'gpt-4-turbo',
+                    apiKey,
+                    fallback: true
+                });
+                console.log('Using OpenAI API as Copilot fallback');
+                return true;
+            }
+            
+            // Fallback 2: Use local model if available
+            const ollamaAvailable = await this.findCommand('ollama');
+            if (ollamaAvailable) {
+                console.log('Using local CodeLlama as Copilot fallback...');
+                this.agents.set('copilot', {
+                    type: 'ollama',
+                    model: 'codellama',
+                    command: 'ollama',
+                    fallback: true
+                });
+                return true;
+            }
+            
+            throw new Error('No Copilot implementation available. Set OPENAI_API_KEY or install Ollama.');
         } catch (error) {
-            console.error('Failed to initialize Copilot:', error.message);
+            console.error('Copilot initialization failed:', error.message);
             return false;
         }
     }
@@ -165,6 +214,17 @@ class AIAgentManager {
             throw new Error(`Agent ${agentType} not initialized. Run 'agenticide agent init ${agentType}'`);
         }
 
+        // Generate context hash for caching
+        const context = options.context || {};
+        const contextHash = this.cache.hash(JSON.stringify(context));
+        
+        // Check cache first
+        const cached = await this.cache.getResponse(message, contextHash);
+        if (cached && !options.noCache) {
+            console.log('💨 Using cached response');
+            return cached;
+        }
+
         // Add to conversation history
         this.conversationHistory.push({
             role: 'user',
@@ -177,6 +237,9 @@ class AIAgentManager {
             case 'acp':
                 response = await this.sendToACP(message, agent, options);
                 break;
+            case 'claude-api':
+                response = await this.sendToClaudeAPI(message, agent, options);
+                break;
             case 'openai-api':
                 response = await this.sendToOpenAI(message, agent, options);
                 break;
@@ -186,6 +249,9 @@ class AIAgentManager {
             default:
                 throw new Error(`Unknown agent type: ${agent.type}`);
         }
+
+        // Cache the response
+        await this.cache.cacheResponse(message, contextHash, response);
 
         // Add response to history
         this.conversationHistory.push({

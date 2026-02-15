@@ -1,54 +1,67 @@
-# Node modules
+# Dependencies
 node_modules/
-package-lock.json
+bun.lockb
 
-# Build outputs
+# Build artifacts
 dist/
 build/
-out/
-*.vsix
-
-# OS files
-.DS_Store
-Thumbs.db
+*.log
+*.pid
+*.seed
+*.pid.lock
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# User config (keep examples)
+.agenticide/hooks.json
+.agenticide/config.json
+.agenticide-tasks.json
+
+# Test output
+test-output/
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.cache/
+
+# Backup files
+*.bak
+*.backup
+index.js.bak*
+*.old
+
+# Runtime
+*.pid
+*.seed
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment
-.env
-.env.local
+# Package manager locks (keep one)
+package-lock.json
+yarn.lock
 
-# SQLite databases
-*.db
-*.sqlite
-
-# Temporary files
-tmp/
-temp/
-.cache/
-
-# Compiled binaries
-*.wasm
-*.node
-
-# macOS
-.AppleDouble
-.LSOverride
-
-# User config
-.agenticide/
-~/.agenticide/
-
-# Test coverage
-coverage/
-.nyc_output/
+# Keep bun.lock but not bun.lockb
+bun.lockb

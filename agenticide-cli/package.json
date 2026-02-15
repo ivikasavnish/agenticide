@@ -1,13 +1,21 @@
 {
   "name": "agenticide-cli",
   "version": "3.0.0",
-  "description": "AI Coding Assistant CLI with ACP + MCP support",
+  "description": "AI Coding Assistant CLI with ACP + MCP support (Node.js & Bun compatible)",
   "main": "index.js",
   "bin": {
     "agenticide": "./index.js"
   },
+  "engines": {
+    "node": ">=16.0.0",
+    "bun": ">=1.0.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "start:bun": "bun run index.js",
+    "test": "node test-integration.js",
+    "test:bun": "bun test-integration.js",
+    "install:bun": "bun install"
   },
   "keywords": [
     "ai",
@@ -17,7 +25,9 @@
     "mcp",
     "claude",
     "copilot",
-    "cli"
+    "cli",
+    "bun",
+    "typescript"
   ],
   "author": "Agenticide Team",
   "license": "MIT",
@@ -30,6 +40,7 @@
     "chalk": "^4.1.2",
     "commander": "^14.0.3",
     "inquirer": "^13.2.2",
-    "ora": "^5.4.1"
+    "ora": "^5.4.1",
+    "redis": "^5.10.0"
   }
 }

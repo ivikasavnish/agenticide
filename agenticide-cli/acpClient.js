@@ -4,13 +4,99 @@
  */
 
 const { spawn } = require('child_process');
-const { Client } = require('@agentclientprotocol/sdk/client/index.js');
-const { StdioClientTransport } = require('@agentclientprotocol/sdk/client/stdio.js');
+const { Writable, Readable } = require('stream');
+
+// Lazy load ES modules (ACP SDK is ESM-only)
+let acp;
+async function loadACPSDK() {
+    if (!acp) {
+        acp = await import('@agentclientprotocol/sdk');
+    }
+    return acp;
+}
 
 class ACPClient {
     constructor() {
         this.agents = new Map();
         this.activeAgent = null;
+        this.messageBuffer = '';
+    }
+
+    /**
+     * Create a client implementation with ACP callbacks
+     */
+    createClientImpl() {
+        const fs = require('fs');
+        const path = require('path');
+        
+        return {
+            sessionUpdate: async (params) => {
+                const update = params.update;
+                
+                // Handle different types of session updates
+                switch (update.sessionUpdate) {
+                    case 'agent_message_chunk':
+                        if (update.content?.type === 'text') {
+                            this.messageBuffer += update.content.text || '';
+                        }
+                        break;
+                    case 'agent_thought_chunk':
+                        // Ignore thinking chunks for now
+                        break;
+                    case 'tool_call':
+                        console.log(`\n🔧 ${update.title || 'Tool call'} (${update.status})`);
+                        break;
+                    case 'tool_call_update':
+                        // Log tool call updates
+                        break;
+                    default:
+                        break;
+                }
+            },
+            requestPermission: async (params) => {
+                // Auto-approve all permissions for now
+                if (params.options && params.options.length > 0) {
+                    // Log what's being approved
+                    console.log(`\n🔐 Permission: ${params.toolCall?.title || 'Action requested'}`);
+                    return {
+                        outcome: {
+                            outcome: 'selected',
+                            optionId: params.options[0].optionId
+                        }
+                    };
+                }
+                return { outcome: { outcome: 'dismissed' } };
+            },
+            readTextFile: async (params) => {
+                try {
+                    const filePath = path.resolve(params.path);
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    console.log(`\n📖 Reading: ${params.path}`);
+                    return { content };
+                } catch (error) {
+                    console.error(`\n❌ Error reading ${params.path}:`, error.message);
+                    return { content: '' };
+                }
+            },
+            writeTextFile: async (params) => {
+                try {
+                    const filePath = path.resolve(params.path);
+                    const dir = path.dirname(filePath);
+                    
+                    // Ensure directory exists
+                    if (!fs.existsSync(dir)) {
+                        fs.mkdirSync(dir, { recursive: true });
+                    }
+                    
+                    fs.writeFileSync(filePath, params.content, 'utf8');
+                    console.log(`\n✍️  Wrote: ${params.path}`);
+                    return {};
+                } catch (error) {
+                    console.error(`\n❌ Error writing ${params.path}:`, error.message);
+                    throw error;
+                }
+            }
+        };
     }
 
     /**
@@ -18,6 +104,9 @@ class ACPClient {
      */
     async initCopilotAgent() {
         try {
+            // Load ACP SDK
+            const acp = await loadACPSDK();
+            
             // Check if GitHub Copilot agent is available
             const copilotPath = await this.findCopilotAgent();
             if (!copilotPath) {
@@ -25,39 +114,39 @@ class ACPClient {
                 return false;
             }
 
-            // Start Copilot agent process
-            const process = spawn(copilotPath, ['--acp'], {
+            // Start Copilot agent process with ACP
+            const agentProcess = spawn(copilotPath, ['--acp'], {
                 stdio: ['pipe', 'pipe', 'pipe']
             });
 
-            // Create ACP transport
-            const transport = new StdioClientTransport({
-                inputStream: process.stdout,
-                outputStream: process.stdin
-            });
+            // Create streams for communication
+            const input = Writable.toWeb(agentProcess.stdin);
+            const output = Readable.toWeb(agentProcess.stdout);
 
-            // Create ACP client
-            const client = new Client({
-                name: 'agenticide-copilot',
-                version: '1.0.0'
-            }, {
-                capabilities: {
-                    roots: {
-                        listChanged: true
-                    },
-                    sampling: {}
+            // Create the connection with proper client implementation
+            const stream = acp.ndJsonStream(input, output);
+            const clientImpl = this.createClientImpl();
+            const connection = new acp.ClientSideConnection(() => clientImpl, stream);
+
+            // Initialize the connection
+            await connection.initialize({
+                protocolVersion: acp.PROTOCOL_VERSION,
+                clientCapabilities: {
+                    fs: {
+                        readTextFile: true,
+                        writeTextFile: true
+                    }
                 }
             });
 
-            // Connect client to transport
-            await client.connect(transport);
-
             this.agents.set('copilot', {
-                client,
-                process,
-                type: 'acp'
+                connection,
+                process: agentProcess,
+                type: 'acp',
+                sessionId: null
             });
 
+            this.activeAgent = 'copilot';
             return true;
         } catch (error) {
             console.error('Copilot init error:', error.message);
@@ -70,50 +159,24 @@ class ACPClient {
      */
     async initClaudeAgent() {
         try {
+            // Load ACP SDK
+            const acp = await loadACPSDK();
+            
             const claudePath = await this.findClaudeAgent();
             if (!claudePath) {
                 return false;
             }
 
-            // Start Claude agent process
-            const process = spawn(claudePath, ['--acp'], {
-                stdio: ['pipe', 'pipe', 'pipe']
-            });
+            // Start Claude agent process (Claude CLI doesn't support --acp yet, use direct mode)
+            // For now, we'll return false and let it fall back to Claude API
+            return false;
 
-            // Create ACP transport
-            const transport = new StdioClientTransport({
-                inputStream: process.stdout,
-                outputStream: process.stdin
-            });
-
-            // Create ACP client
-            const client = new Client({
-                name: 'agenticide-claude',
-                version: '1.0.0'
-            }, {
-                capabilities: {
-                    roots: {
-                        listChanged: true
-                    },
-                    sampling: {}
-                }
-            });
-
-            // Connect client to transport
-            await client.connect(transport);
-
-            this.agents.set('claude', {
-                client,
-                process,
-                type: 'acp'
-            });
-
-            return true;
         } catch (error) {
             console.error('Claude init error:', error.message);
             return false;
         }
     }
+
 
     /**
      * Send message to agent via ACP
@@ -129,33 +192,40 @@ class ACPClient {
         }
 
         try {
-            // Build ACP request
-            const request = {
-                method: 'sampling/createMessage',
-                params: {
-                    messages: [
-                        {
-                            role: 'user',
-                            content: {
-                                type: 'text',
-                                text: this.buildPromptWithContext(message, context)
-                            }
-                        }
-                    ],
-                    maxTokens: 4096,
-                    includeContext: 'allServers'
-                }
-            };
-
-            // Send via ACP client
-            const response = await agent.client.request(request);
-
-            // Extract text from response
-            if (response.content && response.content.type === 'text') {
-                return response.content.text;
+            const conn = agent.connection;
+            
+            // Clear message buffer
+            this.messageBuffer = '';
+            
+            // Create session if not exists
+            if (!agent.sessionId) {
+                const sessionResult = await conn.newSession({
+                    cwd: context.cwd || process.cwd(),
+                    mcpServers: []
+                });
+                agent.sessionId = sessionResult.sessionId;
             }
 
-            return 'No response from agent';
+            // Send prompt
+            let fullMessage = this.buildPromptWithContext(message, context);
+            
+            // Use prompt method with the session
+            const result = await conn.prompt({
+                sessionId: agent.sessionId,
+                prompt: [
+                    {
+                        type: 'text',
+                        text: fullMessage
+                    }
+                ]
+            });
+
+            // Return collected message buffer if available, otherwise use result
+            if (this.messageBuffer) {
+                return this.messageBuffer;
+            }
+            
+            return result.text || result.message || 'No response from agent';
         } catch (error) {
             throw new Error(`ACP communication error: ${error.message}`);
         }
@@ -201,7 +271,10 @@ class ACPClient {
     async findCopilotAgent() {
         const { execSync } = require('child_process');
         const possiblePaths = [
-            '/usr/local/bin/github-copilot-agent',
+            '/opt/homebrew/bin/copilot',             // Homebrew Copilot CLI
+            '/usr/local/bin/copilot',
+            process.env.HOME + '/.local/bin/copilot',
+            '/usr/local/bin/github-copilot-agent',   // Legacy names
             '/opt/homebrew/bin/github-copilot-agent',
             process.env.HOME + '/.local/bin/github-copilot-agent'
         ];
@@ -214,10 +287,15 @@ class ACPClient {
 
         // Try finding via which
         try {
-            const result = execSync('which github-copilot-agent', { encoding: 'utf8' });
+            const result = execSync('which copilot', { encoding: 'utf8' });
             return result.trim();
         } catch {
-            return null;
+            try {
+                const result = execSync('which github-copilot-agent', { encoding: 'utf8' });
+                return result.trim();
+            } catch {
+                return null;
+            }
         }
     }
 
