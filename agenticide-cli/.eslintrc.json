@@ -1,0 +1,31 @@
+{
+  "env": {
+    "node": true,
+    "es2021": true
+  },
+  "extends": "eslint:recommended",
+  "parserOptions": {
+    "ecmaVersion": 12,
+    "sourceType": "module"
+  },
+  "rules": {
+    "max-lines-per-function": ["error", {
+      "max": 50,
+      "skipBlankLines": true,
+      "skipComments": true
+    }],
+    "complexity": ["error", 10],
+    "max-params": ["error", 4],
+    "max-lines": ["warn", {
+      "max": 300,
+      "skipBlankLines": true,
+      "skipComments": true
+    }],
+    "max-depth": ["error", 3],
+    "max-nested-callbacks": ["error", 3],
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-console": "off"
+  }
+}

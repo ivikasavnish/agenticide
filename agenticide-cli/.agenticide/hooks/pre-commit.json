@@ -1,0 +1,32 @@
+{
+  "hooks": {
+    "pre-commit": [
+      {
+        "name": "code-quality-check",
+        "type": "script",
+        "script": "scripts/quality-check.js",
+        "enabled": true,
+        "blocking": true,
+        "onError": "fail",
+        "timeout": 30000
+      },
+      {
+        "name": "security-scan",
+        "type": "script",
+        "script": "scripts/security-scan.js",
+        "enabled": true,
+        "blocking": true,
+        "onError": "fail",
+        "timeout": 30000
+      },
+      {
+        "name": "eslint",
+        "type": "command",
+        "command": "npx eslint --max-warnings 0 .",
+        "enabled": false,
+        "blocking": true,
+        "onError": "warn"
+      }
+    ]
+  }
+}
