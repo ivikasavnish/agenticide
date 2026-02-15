@@ -377,7 +377,7 @@ program
             console.log(chalk.gray('  /status           - Show agent status'));
             console.log(chalk.gray('  /context          - Show context'));
             console.log(chalk.gray('  /cache [stats]    - Cache management'));
-            console.log(chalk.gray('  /tasks            - Show tasks'));
+            console.log(chalk.gray('  /tasks [summary|list|next] - Task management with progress'));
             console.log(chalk.gray('  /search <query>   - Search code'));
             console.log(chalk.magentaBright('\n  🔨 Stub-First Workflow (Professional):'));
             console.log(chalk.magenta('  /stub <module> <lang> [options]   - Generate with tests + annotations'));
@@ -481,15 +481,34 @@ program
                             console.log('');
                         }
                     } else if (cmd === 'tasks') {
-                        const tasks = loadTasks();
-                        console.log(chalk.cyan('\n📋 Tasks:\n'));
-                        if (tasks.length === 0) {
-                            console.log(chalk.gray('  No tasks\n'));
+                        // Enhanced task display
+                        const { TaskTracker } = require('./taskTracker');
+                        const tracker = new TaskTracker();
+                        
+                        const subCmd = args[0];
+                        
+                        if (subCmd === 'summary' || !subCmd) {
+                            tracker.displaySummary();
+                        } else if (subCmd === 'list') {
+                            const showAll = args.includes('--all');
+                            tracker.displayTasks({ showAll, maxDisplay: 20 });
+                        } else if (subCmd === 'next') {
+                            const nextTask = tracker.getNextTask();
+                            if (nextTask) {
+                                console.log(chalk.cyan('\n🎯 Next Task:\n'));
+                                console.log(`  ${chalk.bold(nextTask.function)}`);
+                                console.log(`  ${chalk.gray('File:')} ${nextTask.file}`);
+                                console.log(`  ${chalk.gray('Line:')} ${nextTask.line}`);
+                                console.log(chalk.gray('\n  Use: /implement ' + nextTask.function + '\n'));
+                            } else {
+                                console.log(chalk.green('\n✅ All tasks complete!\n'));
+                            }
                         } else {
-                            tasks.forEach(t => {
-                                const status = t.completed ? chalk.green('✓') : chalk.yellow('○');
-                                console.log(`  ${status} ${t.description}`);
-                            });
+                            console.log(chalk.cyan('\n📋 Task Commands:\n'));
+                            console.log(chalk.gray('  /tasks          - Show summary with progress'));
+                            console.log(chalk.gray('  /tasks list     - List all tasks'));
+                            console.log(chalk.gray('  /tasks list --all - List all tasks (no limit)'));
+                            console.log(chalk.gray('  /tasks next     - Show next task to implement'));
                             console.log('');
                         }
                     } else if (cmd === 'search') {
@@ -1947,12 +1966,4 @@ program
         
         console.log(chalk.gray('\nUse: /implement <function> to start working\n'));
     });
-
-// Parse arguments
-program.parse(process.argv);
-
-// If no command provided, show help
-if (!process.argv.slice(2).length) {
-    program.outputHelp();
-}
 

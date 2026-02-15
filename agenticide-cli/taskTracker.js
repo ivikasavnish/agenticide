@@ -1,11 +1,13 @@
 // Task Tracker Integration - Manages tasks for stub workflow
 const fs = require('fs');
 const path = require('path');
+const ProgressTracker = require('./core/progressTracker');
 
 class TaskTracker {
     constructor(projectPath = '.') {
         this.projectPath = projectPath;
         this.taskFile = path.join(projectPath, '.agenticide-tasks.json');
+        this.progress = new ProgressTracker();
     }
 
     /**
@@ -225,6 +227,26 @@ class TaskTracker {
                 ? Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100)
                 : 0
         };
+    }
+
+    /**
+     * Display project summary with visual progress
+     */
+    displaySummary() {
+        const summary = this.getProjectSummary();
+        const data = this.loadTasks();
+        
+        this.progress.showSummary(data.tasks);
+        
+        return summary;
+    }
+
+    /**
+     * Display task list with better formatting
+     */
+    displayTasks(options = {}) {
+        const data = this.loadTasks();
+        this.progress.showTaskList(data.tasks, options);
     }
 
     /**
