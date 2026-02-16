@@ -439,6 +439,7 @@ program
             console.log(chalk.gray('  /cache [stats]    - Cache management'));
             console.log(chalk.gray('  /tasks [summary|list|next] - Task management with progress'));
             console.log(chalk.gray('  /search <query>   - Search code'));
+            console.log(chalk.gray('  /switch <cmd>     - Switch to other commands (analyze, search, task)'));
             console.log(chalk.green('\n  💾 Session Management:'));
             console.log(chalk.green('  /sessions         - List all sessions'));
             console.log(chalk.green('  /session save [name] - Save current session'));
@@ -596,6 +597,48 @@ program
                         // List all sessions
                         const sessions = sessionManager.listSessions();
                         sessionManager.displaySessions(sessions);
+                    } else if (cmd === 'switch' || cmd === 'mode') {
+                        // Switch to different agenticide commands
+                        const targetCmd = args[0];
+                        
+                        if (!targetCmd) {
+                            console.log(chalk.cyan('\n🔄 Switch Commands:\n'));
+                            console.log(chalk.gray('  /switch analyze  - Analyze project with LSP'));
+                            console.log(chalk.gray('  /switch search   - Semantic code search'));
+                            console.log(chalk.gray('  /switch status   - Show agenticide status'));
+                            console.log(chalk.gray('  /switch task     - Task management'));
+                            console.log(chalk.gray('\nOr exit chat and run: agenticide <command>\n'));
+                        } else if (targetCmd === 'analyze') {
+                            console.log(chalk.cyan('\n🔍 Analyzing project...\n'));
+                            console.log(chalk.gray('Tip: Run "agenticide analyze" for full LSP analysis'));
+                            console.log(chalk.gray('For now, showing project context:\n'));
+                            
+                            if (projectContext) {
+                                console.log(`  Directory: ${projectContext.cwd}`);
+                                console.log(`  Symbols: ${projectContext.symbols?.length || 0} indexed`);
+                                console.log(`  Language: ${projectContext.language || 'unknown'}`);
+                            } else {
+                                console.log(chalk.yellow('  No context loaded. Run: agenticide analyze'));
+                            }
+                            console.log('');
+                        } else if (targetCmd === 'search') {
+                            console.log(chalk.cyan('\n🔍 Semantic Search:\n'));
+                            console.log(chalk.gray('Usage: /search <query>'));
+                            console.log(chalk.gray('Example: /search authentication function\n'));
+                        } else if (targetCmd === 'status') {
+                            // Already handled above
+                            agentManager.displayAgentStatus();
+                        } else if (targetCmd === 'task') {
+                            const tasks = loadTasks();
+                            console.log(chalk.cyan('\n📋 Tasks:\n'));
+                            console.log(`  Total: ${tasks.length}`);
+                            console.log(`  Pending: ${tasks.filter(t => t.status === 'pending').length}`);
+                            console.log(`  Complete: ${tasks.filter(t => t.status === 'completed').length}`);
+                            console.log(chalk.gray('\nUse /tasks for more details\n'));
+                        } else {
+                            console.log(chalk.yellow(`\n⚠️  Unknown command: ${targetCmd}\n`));
+                            console.log(chalk.gray('Available: analyze, search, status, task\n'));
+                        }
                     } else if (cmd === 'session') {
                         // Session management
                         const subCmd = args[0];
@@ -1872,10 +1915,22 @@ program.on('--help', () => {
 // Parse arguments
 program.parse(process.argv);
 
-// Show help if no command
-if (!process.argv.slice(2).length) {
+// Default to chat mode if no command specified
+if (process.argv.length === 2) {
+    // No arguments provided, start chat with defaults
     console.log(chalk.cyan(banner));
-    program.outputHelp();
+    console.log(chalk.green('💬 Starting default chat mode...\n'));
+    console.log(chalk.gray('Tip: Use "agenticide help" to see all commands\n'));
+    
+    // Programmatically invoke the chat command
+    const chatCommand = program.commands.find(cmd => cmd.name() === 'chat');
+    if (chatCommand) {
+        chatCommand._actionHandler({
+            provider: 'copilot',
+            context: true,
+            compact: true
+        });
+    }
 }
 
 // Cleanup on exit
