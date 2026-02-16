@@ -461,11 +461,15 @@ program
             console.log(chalk.cyan('  /write <file> ... - Write file'));
             console.log(chalk.cyan('  /edit <file> ...  - Edit with AI'));
             console.log(chalk.cyan('  /debug <target>   - Debug code/error'));
-            console.log(chalk.blue('\n  ⚡ Shell Commands:'));
+            console.log(chalk.blue('\n  ⚡ Shell & Process Management:'));
             console.log(chalk.blue('  !<command>        - Execute shell command'));
             console.log(chalk.blue('  !python <code>    - Execute Python'));
             console.log(chalk.blue('  !node <code>      - Execute Node.js'));
             console.log(chalk.blue('  !~<command>       - Background execution'));
+            console.log(chalk.blue('  /process start <cmd> - Start background process'));
+            console.log(chalk.blue('  /process list     - List all processes'));
+            console.log(chalk.blue('  /process logs <id> - View process output'));
+            console.log(chalk.blue('  /process stop <id> - Stop a process'));
             console.log(chalk.gray('  exit              - Quit\n'));
             
             // Show enabled extensions
@@ -699,7 +703,7 @@ program
                             console.log(chalk.gray('  /extension info <name>   - Show extension details'));
                             console.log('');
                         }
-                    } else if (cmd === 'browser' || cmd === 'docker' || cmd === 'debug' || cmd === 'cli' || cmd === 'mcp' || cmd === 'qa') {
+                    } else if (cmd === 'browser' || cmd === 'docker' || cmd === 'debug' || cmd === 'cli' || cmd === 'mcp' || cmd === 'qa' || cmd === 'process') {
                         // Handle extension commands
                         const ext = extensionManager.getExtension(cmd);
                         
@@ -718,10 +722,35 @@ program
                                     if (result.output) {
                                         console.log(result.output);
                                     }
+                                    if (result.processes) {
+                                        // Special handling for process list
+                                        console.log(chalk.cyan('\n📊 Running Processes:\n'));
+                                        console.log(chalk.gray('  ID  PID     STATUS    UPTIME  COMMAND'));
+                                        console.log(chalk.gray('  ' + '─'.repeat(60)));
+                                        for (const proc of result.processes) {
+                                            const statusColor = proc.status === 'running' ? 'green' : 'gray';
+                                            console.log(`  ${String(proc.id).padEnd(4)}${String(proc.pid).padEnd(8)}${chalk[statusColor](proc.status.padEnd(10))}${proc.uptime.padEnd(8)}${proc.command}`);
+                                        }
+                                        console.log();
+                                    }
+                                    if (result.process) {
+                                        // Single process status
+                                        console.log(chalk.cyan('\n📊 Process Status:\n'));
+                                        const p = result.process;
+                                        console.log(`  ${chalk.gray('ID:')}       ${p.id}`);
+                                        console.log(`  ${chalk.gray('PID:')}      ${p.pid}`);
+                                        console.log(`  ${chalk.gray('Status:')}   ${p.status === 'running' ? chalk.green(p.status) : chalk.gray(p.status)}`);
+                                        console.log(`  ${chalk.gray('Command:')}  ${p.command}`);
+                                        if (p.uptime) console.log(`  ${chalk.gray('Uptime:')}   ${p.uptime}`);
+                                        if (p.exitCode !== null) console.log(`  ${chalk.gray('Exit:')}     ${p.exitCode}`);
+                                        console.log();
+                                    }
                                     if (result.result) {
                                         console.log(chalk.gray('\nResult:'), result.result);
                                     }
-                                    console.log();
+                                    if (!result.message && !result.output && !result.processes && !result.process) {
+                                        console.log();
+                                    }
                                 } else {
                                     console.log(chalk.red(`\n✗ ${result.error}\n`));
                                 }
@@ -918,8 +947,20 @@ Analyze for bugs, errors, and improvements. Provide specific issues and fixes.`;
                     } else if (cmd === 'stub') {
                         // NEW: Use StubOrchestrator for full integration (AI → Git → Tasks → Display)
                         const args = trimmed.split(' ').slice(1);
-                        const moduleName = args[0];
-                        const language = args[1];
+                        
+                        // Detect language from known keywords
+                        const languages = ['go', 'rust', 'typescript', 'javascript', 'python', 'java', 'csharp', 'cpp', 'c++'];
+                        let language = null;
+                        let moduleName = null;
+                        
+                        for (const lang of languages) {
+                            const idx = args.findIndex(a => a.toLowerCase() === lang);
+                            if (idx !== -1) {
+                                language = lang;
+                                args.splice(idx, 1);
+                                break;
+                            }
+                        }
                         
                         // Parse options
                         const options = {
@@ -930,7 +971,8 @@ Analyze for bugs, errors, and improvements. Provide specific issues and fixes.`;
                             requirements: []
                         };
                         
-                        for (let i = 2; i < args.length; i++) {
+                        const filteredArgs = [];
+                        for (let i = 0; i < args.length; i++) {
                             const arg = args[i];
                             if (arg.startsWith('--style=')) {
                                 options.style = arg.split('=')[1];
@@ -941,8 +983,14 @@ Analyze for bugs, errors, and improvements. Provide specific issues and fixes.`;
                             } else if (arg === 'service' || arg === 'api' || arg === 'library') {
                                 options.type = arg;
                             } else {
-                                options.requirements.push(arg);
+                                filteredArgs.push(arg);
                             }
+                        }
+                        
+                        // First non-option arg is module name, rest is requirements
+                        if (filteredArgs.length > 0) {
+                            moduleName = filteredArgs[0];
+                            options.requirements = filteredArgs.slice(1);
                         }
                         
                         const requirements = options.requirements.length > 0 ? options.requirements.join(' ') : null;
