@@ -20,26 +20,36 @@
 
 **Agenticide provides a complete professional development workflow that no other AI IDE offers.**
 
-## ⚡ Quick Example
+## ⚡ Quick Start
 
 ```bash
+# Just run agenticide - chat mode starts automatically!
+$ agenticide
+
+💬 You: create a websocket server with authentication
+
+🤖 Assistant: I'll help you create that...
+
 # Generate production-ready code:
-/stub auth go service --style=google
+/stub websocket javascript service --style=airbnb
 
 ✨ Automatically:
-  ✅ Creates Git branch (feature/stub-auth)
-  ✅ Generates AI stubs with Google Go style
+  ✅ Creates Git branch (feature/stub-websocket)
+  ✅ Generates AI stubs with Airbnb style
   ✅ Adds comprehensive API annotations
-  ✅ Creates table-driven tests
+  ✅ Creates Jest tests
   ✅ Tracks tasks in .agenticide-tasks.json
   ✅ Commits to Git
-  ✅ Shows code with clipboard support
 
 # Manage background processes:
-/process start node server.js
+/process start node websocket-server.js
 /process list
 /process logs 1
-/process stop 1
+
+# Switch to other features:
+/switch task        # Task management
+/switch analyze     # Project analysis
+/switch search      # Semantic search
 ```
 
 ## 🚀 Installation
@@ -50,6 +60,31 @@ cd agenticide
 ./install.sh
 echo 'source ~/.agenticide/aliases.sh' >> ~/.zshrc
 source ~/.zshrc
+
+# Start immediately (no subcommand needed!)
+agenticide
+```
+
+## 🎮 Usage
+
+### Default Chat Mode (Easiest Way)
+```bash
+# Just run agenticide - starts interactive chat
+$ agenticide
+
+# Ask questions, generate code, manage processes
+You: help me build a REST API
+You: /stub api go service
+You: /process start go run main.go
+You: /switch task
+```
+
+### Specific Commands
+```bash
+agenticide init              # Initialize in directory
+agenticide analyze           # Analyze project with LSP
+agenticide search "query"    # Semantic code search
+agenticide status            # Show status
 ```
 
 ## 📚 Complete Documentation
