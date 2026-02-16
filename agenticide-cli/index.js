@@ -244,9 +244,14 @@ program
         const Database = require('better-sqlite3');
         const SessionManager = require('./core/sessionManager');
         const AutoCompaction = require('./core/autoCompaction');
+        const { ExtensionManager } = require('./core/extensionManager');
         
         const agentManager = new AIAgentManager();
         const sessionManager = new SessionManager();
+        const extensionManager = new ExtensionManager();
+        
+        // Load extensions
+        await extensionManager.loadExtensions();
         
         // Run auto-compaction on startup (unless disabled)
         if (options.compact !== false) {
@@ -439,6 +444,8 @@ program
             console.log(chalk.green('  /session save [name] - Save current session'));
             console.log(chalk.green('  /session load <name> - Load a session'));
             console.log(chalk.green('  /compact          - Run auto-compaction'));
+            console.log(chalk.green('  /extensions       - List available extensions'));
+            console.log(chalk.green('  /extension enable <name> - Enable extension'));
             console.log(chalk.magentaBright('\n  🔨 Stub-First Workflow (Professional):'));
             console.log(chalk.magenta('  /stub <module> <lang> [options]   - Generate with tests + annotations'));
             console.log(chalk.gray('    Options: --style=google|airbnb|uber  --no-tests  --no-annotations'));
@@ -460,6 +467,16 @@ program
             console.log(chalk.blue('  !node <code>      - Execute Node.js'));
             console.log(chalk.blue('  !~<command>       - Background execution'));
             console.log(chalk.gray('  exit              - Quit\n'));
+            
+            // Show enabled extensions
+            const enabledExts = extensionManager.listExtensions().filter(e => e.enabled);
+            if (enabledExts.length > 0) {
+                console.log(chalk.magenta('\n  🧩 Enabled Extensions:'));
+                enabledExts.forEach(ext => {
+                    console.log(chalk.magenta(`  /${ext.commands[0] || ext.name}              - ${ext.description}`));
+                });
+                console.log();
+            }
             
             // Interactive chat loop
             while (true) {
@@ -627,6 +644,91 @@ program
                         
                         const results = await compaction.runAll();
                         compaction.displayResults(results);
+                    } else if (cmd === 'extensions') {
+                        // List extensions
+                        extensionManager.displayExtensions();
+                    } else if (cmd === 'extension' || cmd === 'ext') {
+                        // Extension management
+                        const subCmd = args[0];
+                        const extName = args[1];
+                        
+                        if (subCmd === 'enable') {
+                            if (!extName) {
+                                console.log(chalk.red('\n✗ Please specify an extension name\n'));
+                            } else {
+                                const result = await extensionManager.enableExtension(extName);
+                                if (result.success) {
+                                    console.log(chalk.green(`\n✓ Extension '${extName}' enabled\n`));
+                                } else {
+                                    console.log(chalk.red(`\n✗ ${result.error}\n`));
+                                }
+                            }
+                        } else if (subCmd === 'disable') {
+                            if (!extName) {
+                                console.log(chalk.red('\n✗ Please specify an extension name\n'));
+                            } else {
+                                const result = await extensionManager.disableExtension(extName);
+                                if (result.success) {
+                                    console.log(chalk.yellow(`\n○ Extension '${extName}' disabled\n`));
+                                } else {
+                                    console.log(chalk.red(`\n✗ ${result.error}\n`));
+                                }
+                            }
+                        } else if (subCmd === 'info') {
+                            if (!extName) {
+                                console.log(chalk.red('\n✗ Please specify an extension name\n'));
+                            } else {
+                                const ext = extensionManager.getExtension(extName);
+                                if (ext) {
+                                    const info = ext.getInfo();
+                                    console.log(chalk.cyan(`\n🧩 ${info.name} v${info.version}\n`));
+                                    console.log(`  ${chalk.gray('Description:')} ${info.description}`);
+                                    console.log(`  ${chalk.gray('Author:')} ${info.author}`);
+                                    console.log(`  ${chalk.gray('Status:')} ${info.enabled ? chalk.green('Enabled') : chalk.gray('Disabled')}`);
+                                    console.log(`  ${chalk.gray('Commands:')} ${info.commands.join(', ')}`);
+                                    console.log();
+                                } else {
+                                    console.log(chalk.red(`\n✗ Extension '${extName}' not found\n`));
+                                }
+                            }
+                        } else {
+                            console.log(chalk.cyan('\n🧩 Extension Commands:\n'));
+                            console.log(chalk.gray('  /extensions              - List all extensions'));
+                            console.log(chalk.gray('  /extension enable <name> - Enable an extension'));
+                            console.log(chalk.gray('  /extension disable <name> - Disable an extension'));
+                            console.log(chalk.gray('  /extension info <name>   - Show extension details'));
+                            console.log('');
+                        }
+                    } else if (cmd === 'browser' || cmd === 'docker' || cmd === 'debug' || cmd === 'cli' || cmd === 'mcp' || cmd === 'qa') {
+                        // Handle extension commands
+                        const ext = extensionManager.getExtension(cmd);
+                        
+                        if (!ext) {
+                            console.log(chalk.red(`\n✗ Extension '${cmd}' not found\n`));
+                        } else if (!ext.enabled) {
+                            console.log(chalk.yellow(`\n⚠️  Extension '${cmd}' is disabled. Enable with: /extension enable ${cmd}\n`));
+                        } else {
+                            try {
+                                const result = await ext.execute(args[0] || 'help', args.slice(1));
+                                
+                                if (result.success) {
+                                    if (result.message) {
+                                        console.log(chalk.green(`\n✓ ${result.message}`));
+                                    }
+                                    if (result.output) {
+                                        console.log(result.output);
+                                    }
+                                    if (result.result) {
+                                        console.log(chalk.gray('\nResult:'), result.result);
+                                    }
+                                    console.log();
+                                } else {
+                                    console.log(chalk.red(`\n✗ ${result.error}\n`));
+                                }
+                            } catch (error) {
+                                console.log(chalk.red(`\n✗ Extension error: ${error.message}\n`));
+                            }
+                        }
                     } else if (cmd === 'search') {
                         const query = args.join(' ');
                         if (query) {
