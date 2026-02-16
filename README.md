@@ -94,9 +94,11 @@ agenticide status            # Show status
 - [Workflow Integration](./WORKFLOW_INTEGRATION.md) - Automation system (10KB)
 - [Session Management](./SESSION_MANAGEMENT.md) - Named sessions & auto-compaction (12KB)
 - [Process Management](./PROCESS_MANAGEMENT.md) - Terminal & process control (5KB)
+- [Modular Refactoring](./MODULAR_REFACTORING.md) - 90% code reduction (8KB)
+- [Default Chat Mode](./DEFAULT_CHAT_MODE.md) - Zero-command start (6KB)
 - [Complete Integration](./COMPLETE_INTEGRATION.md) - Full features (11KB)
 
-**Total: 75KB of comprehensive documentation**
+**Total: 85KB of comprehensive documentation**
 
 ## 🧩 Extensions (7 Built-in)
 
@@ -164,13 +166,15 @@ Agenticide includes a powerful extension system with 7 ready-to-use plugins:
 
 ## 📊 Statistics
 
-- **6,500+** lines of code
+- **7,800+** lines of modular code (was 2290-line monolith)
+- **90% size reduction** in main index.js (2290 → 222 lines)
 - **7** languages supported (Go, Rust, TypeScript, JavaScript, Python, Java, C#)
 - **6** coding styles (Google, Airbnb, Uber, Microsoft, Rust, PEP8)
 - **7** extensions (process, browser, docker, cli, debugger, mcp, qa)
 - **4** test frameworks (Google Test, Jest, pytest, Rust)
 - **3** export formats (Makefile, Taskfile, JSON)
 - **9/9** tests passing (100%)
+- **Modular architecture** - Maintainable, testable, extensible
 - **Named sessions** with auto-save and resume
 - **Auto-compaction** for git and database
 
