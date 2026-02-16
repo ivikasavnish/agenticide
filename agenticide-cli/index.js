@@ -236,11 +236,55 @@ program
     .option('-m, --model <model>', 'Specific model to use')
     .option('--list-models', 'List all available models')
     .option('--no-context', 'Disable context sharing')
+    .option('-s, --session <name>', 'Named session to save/resume')
+    .option('-c, --continue', 'Continue from last session')
+    .option('--no-compact', 'Skip auto-compaction on startup')
     .action(async (options) => {
         const { AIAgentManager } = require('./aiAgents');
         const Database = require('better-sqlite3');
+        const SessionManager = require('./core/sessionManager');
+        const AutoCompaction = require('./core/autoCompaction');
         
         const agentManager = new AIAgentManager();
+        const sessionManager = new SessionManager();
+        
+        // Run auto-compaction on startup (unless disabled)
+        if (options.compact !== false) {
+            const dbPath = path.join(CONFIG_DIR, 'cli.db');
+            const sessionsDir = sessionManager.sessionsDir;
+            
+            await AutoCompaction.runOnStartup({
+                gitRepoPath: process.cwd(),
+                dbPath: fs.existsSync(dbPath) ? dbPath : null,
+                sessionsDir
+            });
+        }
+        
+        // Handle session loading
+        let loadedSession = null;
+        let sessionName = options.session;
+        
+        if (options.continue) {
+            // Load last session
+            const lastSession = sessionManager.getLastSession();
+            if (lastSession) {
+                const result = sessionManager.loadSession(lastSession);
+                if (result.success) {
+                    loadedSession = result.session;
+                    sessionName = lastSession;
+                    console.log(chalk.green(`\n✓ Continuing session: ${chalk.bold(lastSession)}`));
+                }
+            }
+        } else if (sessionName) {
+            // Load named session
+            const result = sessionManager.loadSession(sessionName);
+            if (result.success) {
+                loadedSession = result.session;
+                console.log(chalk.green(`\n✓ Loaded session: ${chalk.bold(sessionName)}`));
+            } else {
+                console.log(chalk.yellow(`\n⚠️  Session '${sessionName}' not found, starting new session`));
+            }
+        }
         
         // List models and exit
         if (options.listModels) {
@@ -370,6 +414,17 @@ program
                 console.log(`  ${chalk.gray('Tasks:')} ${projectContext.pendingTasks}/${projectContext.tasks} pending`);
             }
             
+            // Show session info if loaded
+            if (loadedSession) {
+                console.log(chalk.cyan('\n💾 Session Info:\n'));
+                console.log(`  ${chalk.gray('Name:')} ${chalk.bold(sessionName)}`);
+                console.log(`  ${chalk.gray('Messages:')} ${loadedSession.messageCount}`);
+                console.log(`  ${chalk.gray('Created:')} ${new Date(loadedSession.createdAt).toLocaleString()}`);
+            }
+            
+            // Initialize chat history
+            let chatHistory = loadedSession ? loadedSession.messages : [];
+            
             // Interactive chat
             console.log(chalk.green('\n💬 Chat started. Commands:'));
             console.log(chalk.gray('  /agent <name>     - Switch agent'));
@@ -379,6 +434,11 @@ program
             console.log(chalk.gray('  /cache [stats]    - Cache management'));
             console.log(chalk.gray('  /tasks [summary|list|next] - Task management with progress'));
             console.log(chalk.gray('  /search <query>   - Search code'));
+            console.log(chalk.green('\n  💾 Session Management:'));
+            console.log(chalk.green('  /sessions         - List all sessions'));
+            console.log(chalk.green('  /session save [name] - Save current session'));
+            console.log(chalk.green('  /session load <name> - Load a session'));
+            console.log(chalk.green('  /compact          - Run auto-compaction'));
             console.log(chalk.magentaBright('\n  🔨 Stub-First Workflow (Professional):'));
             console.log(chalk.magenta('  /stub <module> <lang> [options]   - Generate with tests + annotations'));
             console.log(chalk.gray('    Options: --style=google|airbnb|uber  --no-tests  --no-annotations'));
@@ -511,6 +571,62 @@ program
                             console.log(chalk.gray('  /tasks next     - Show next task to implement'));
                             console.log('');
                         }
+                    } else if (cmd === 'sessions') {
+                        // List all sessions
+                        const sessions = sessionManager.listSessions();
+                        sessionManager.displaySessions(sessions);
+                    } else if (cmd === 'session') {
+                        // Session management
+                        const subCmd = args[0];
+                        const sessionArg = args[1];
+                        
+                        if (subCmd === 'save') {
+                            const name = sessionArg || sessionManager.generateSessionName();
+                            const result = sessionManager.saveSession(name, {
+                                messages: chatHistory || [],
+                                context: projectContext,
+                                tasks: loadTasks()
+                            });
+                            
+                            if (result.success) {
+                                console.log(chalk.green(`\n✓ Session saved: ${chalk.bold(result.sessionName)}\n`));
+                            } else {
+                                console.log(chalk.red(`\n✗ Failed to save session: ${result.error}\n`));
+                            }
+                        } else if (subCmd === 'load') {
+                            if (!sessionArg) {
+                                console.log(chalk.red('\n✗ Please specify a session name\n'));
+                                console.log(chalk.gray('Usage: /session load <name>\n'));
+                            } else {
+                                const result = sessionManager.loadSession(sessionArg);
+                                if (result.success) {
+                                    loadedSession = result.session;
+                                    chatHistory = result.session.messages || [];
+                                    console.log(chalk.green(`\n✓ Session loaded: ${chalk.bold(sessionArg)}\n`));
+                                    console.log(chalk.gray(`  ${result.session.messageCount} messages restored\n`));
+                                } else {
+                                    console.log(chalk.red(`\n✗ ${result.error}\n`));
+                                }
+                            }
+                        } else {
+                            console.log(chalk.cyan('\n💾 Session Commands:\n'));
+                            console.log(chalk.gray('  /session save [name]  - Save current session'));
+                            console.log(chalk.gray('  /session load <name>  - Load a session'));
+                            console.log(chalk.gray('  /sessions             - List all sessions'));
+                            console.log('');
+                        }
+                    } else if (cmd === 'compact') {
+                        // Run manual compaction
+                        const AutoCompaction = require('./core/autoCompaction');
+                        const compaction = new AutoCompaction({
+                            verbose: true,
+                            gitRepoPath: process.cwd(),
+                            dbPath: path.join(CONFIG_DIR, 'cli.db'),
+                            sessionsDir: sessionManager.sessionsDir
+                        });
+                        
+                        const results = await compaction.runAll();
+                        compaction.displayResults(results);
                     } else if (cmd === 'search') {
                         const query = args.join(' ');
                         if (query) {
