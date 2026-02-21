@@ -14,7 +14,7 @@ module.exports = function(program, dependencies) {
         .action(async () => {
             const ora = require('ora');
             const Database = require('better-sqlite3');
-            const SemanticSearch = require('../agenticide-core/semanticSearch');
+            const SemanticSearch = require('../../agenticide-core/semanticSearch');
             
             const spinner = ora('Building semantic index...').start();
             
@@ -39,7 +39,7 @@ module.exports = function(program, dependencies) {
         .option('-n, --num <number>', 'Number of results', '5')
         .action(async (query, options) => {
             const Database = require('better-sqlite3');
-            const SemanticSearch = require('../agenticide-core/semanticSearch');
+            const SemanticSearch = require('../../agenticide-core/semanticSearch');
             
             try {
                 const dbPath = path.join(CONFIG_DIR, 'cli.db');

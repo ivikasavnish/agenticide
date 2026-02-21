@@ -1,6 +1,6 @@
 {
   "name": "agenticide-cli",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "AI Coding Assistant CLI with ACP + MCP support (Node.js & Bun compatible)",
   "main": "index.js",
   "bin": {

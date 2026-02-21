@@ -1,67 +1,383 @@
-# Dependencies
+# ============================================================================
+# Agenticide - Comprehensive .gitignore
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Node.js / JavaScript / TypeScript
+# ----------------------------------------------------------------------------
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Package manager locks (optional - uncomment to ignore)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
 bun.lockb
 
-# Build artifacts
+# Build outputs
 dist/
+dist-ssr/
 build/
-*.log
-*.pid
-*.seed
-*.pid.lock
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+.vite/
+*.tsbuildinfo
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# TypeScript
+*.tsbuildinfo
+.tsc-cache/
 
-# OS
-.DS_Store
-Thumbs.db
+# ----------------------------------------------------------------------------
+# Rust / Cargo
+# ----------------------------------------------------------------------------
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
 
-# Environment
+# ----------------------------------------------------------------------------
+# Go
+# ----------------------------------------------------------------------------
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+pkg/
+vendor/
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# ----------------------------------------------------------------------------
+# Python
+# ----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Virtual environments
 .env
-.env.local
-.env.*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# User config (keep examples)
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# Poetry
+poetry.lock
+
+# ----------------------------------------------------------------------------
+# Java / JVM
+# ----------------------------------------------------------------------------
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+target/
+.gradle/
+build/
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+
+# ----------------------------------------------------------------------------
+# C / C++
+# ----------------------------------------------------------------------------
+*.o
+*.a
+*.out
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.app
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+
+# ----------------------------------------------------------------------------
+# Agenticide Specific
+# ----------------------------------------------------------------------------
+agenticide-bin
 .agenticide/hooks.json
 .agenticide/config.json
+.agenticide/cli.db
+.agenticide/cli.db-*
 .agenticide-tasks.json
+.agenticide-context.json
 
-# Test output
+# Session state (keep session files but not temp)
+.agenticide/session-state/**/temp/
+.agenticide/session-state/**/*.tmp
+
+# ----------------------------------------------------------------------------
+# Build & Release
+# ----------------------------------------------------------------------------
+*.vsix
+*.tgz
+release-*/
+Formula/agenticide.rb
+
+# ----------------------------------------------------------------------------
+# Testing & Coverage
+# ----------------------------------------------------------------------------
 test-output/
 coverage/
 .nyc_output/
+*.lcov
+.coverage
+htmlcov/
+.pytest_cache/
+.rspec_status
 
-# Temporary files
-*.tmp
-*.temp
-.tmp/
-.cache/
+# ----------------------------------------------------------------------------
+# IDEs & Editors
+# ----------------------------------------------------------------------------
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
 
-# Backup files
-*.bak
-*.backup
-index.js.bak*
-*.old
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+out/
 
-# Runtime
-*.pid
-*.seed
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+.vim/
+Session.vim
+.netrwhist
 
+# Emacs
+*~
+\#*\#
+.\#*
+.emacs.desktop
+.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# TextMate
+*.tmproj
+*.tmproject
+tmtags
+
+# ----------------------------------------------------------------------------
+# Operating Systems
+# ----------------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ----------------------------------------------------------------------------
 # Logs
+# ----------------------------------------------------------------------------
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+pids/
+*.pid
+*.seed
+*.pid.lock
+lib-cov/
 
-# Package manager locks (keep one)
-package-lock.json
-yarn.lock
+# ----------------------------------------------------------------------------
+# Environment & Secrets
+# ----------------------------------------------------------------------------
+.env
+.env.*
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+secrets.yml
+secrets.yaml
+*.key
+*.pem
+*.p12
+*.pfx
+*.secret
 
-# Keep bun.lock but not bun.lockb
-bun.lockb
+# ----------------------------------------------------------------------------
+# Temporary & Cache Files
+# ----------------------------------------------------------------------------
+*.tmp
+*.temp
+*.cache
+.cache/
+.temp/
+.tmp/
+tmp/
+temp/
+
+# ----------------------------------------------------------------------------
+# Backup Files
+# ----------------------------------------------------------------------------
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*~
+index.js.bak*
+
+# ----------------------------------------------------------------------------
+# Docker
+# ----------------------------------------------------------------------------
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# ----------------------------------------------------------------------------
+# Databases
+# ----------------------------------------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# ----------------------------------------------------------------------------
+# Archives
+# ----------------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.bz2
+*.gz
+*.xz
+
+# ----------------------------------------------------------------------------
+# Keep These (Exceptions)
+# ----------------------------------------------------------------------------
+!.gitignore
+!.gitkeep
+!.github/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.devcontainer/
+
+# ----------------------------------------------------------------------------
+# Custom Patterns (Add project-specific ignores below)
+# ----------------------------------------------------------------------------
+# Add your custom ignore patterns here

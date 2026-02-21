@@ -1,6 +1,9 @@
 const ProjectManager = require('./projectManager');
 const CodeAnalyzer = require('./codeAnalyzer');
 const ProjectTemplates = require('./projectTemplates');
+const { TaskManager } = require('./taskManager');
+const { DependencyResolver } = require('./dependencyResolver');
+const { TaskExecutor } = require('./taskExecutor');
 
 module.exports = {
     ProjectManager,
@@ -8,5 +11,8 @@ module.exports = {
     TerminalManager: require('./terminalManager'),
     APITester: require('./apiTester'),
     CodeAnalyzer,
-    ProjectTemplates
+    ProjectTemplates,
+    TaskManager,
+    DependencyResolver,
+    TaskExecutor
 };

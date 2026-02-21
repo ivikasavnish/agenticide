@@ -51,9 +51,18 @@ function saveConfig(config) {
 
 function loadTasks() {
     if (fs.existsSync(TASKS_FILE)) {
-        return JSON.parse(fs.readFileSync(TASKS_FILE, 'utf8'));
+        try {
+            const data = JSON.parse(fs.readFileSync(TASKS_FILE, 'utf8'));
+            // Support both old array format and new object format
+            if (Array.isArray(data)) {
+                return { modules: [], tasks: data };
+            }
+            return data;
+        } catch (error) {
+            return { modules: [], tasks: [] };
+        }
     }
-    return [];
+    return { modules: [], tasks: [] };
 }
 
 function saveTasks(tasks) {

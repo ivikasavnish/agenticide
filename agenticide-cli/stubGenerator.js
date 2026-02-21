@@ -128,11 +128,6 @@ class StubGenerator {
         }
 
         const moduleDir = path.join(basePath, 'src', moduleName);
-        
-        // Create directory
-        if (!fs.existsSync(moduleDir)) {
-            fs.mkdirSync(moduleDir, { recursive: true });
-        }
 
         // Set default options
         const generationOptions = {
@@ -142,31 +137,309 @@ class StubGenerator {
             ...options
         };
 
-        // Build AI prompt for stub generation
-        const prompt = this._buildStubPrompt(
-            moduleName, 
-            language, 
-            type, 
-            structure, 
-            convention, 
+        // PHASE 1: Generate Plan (AI returns structured plan)
+        const plan = await this._generatePlan(
+            moduleName,
+            language,
+            type,
+            structure,
+            convention,
             customRequirements,
             generationOptions
         );
-        
-        // Generate stubs using AI
-        const response = await this._generateWithAI(prompt);
-        
-        // Parse AI response and create files
-        const files = this._parseAndCreateFiles(response, moduleDir, convention);
+
+        // PHASE 2: Execute Plan (Create directories and files)
+        const executionResult = await this._executePlan(plan, moduleDir, convention);
 
         return {
             module: moduleName,
             language,
             type,
             directory: moduleDir,
-            files,
-            totalStubs: files.reduce((sum, f) => sum + f.stubs, 0)
+            plan: plan,
+            files: executionResult.files,
+            totalStubs: executionResult.files.reduce((sum, f) => sum + f.stubs, 0)
         };
+    }
+
+    /**
+     * PHASE 1: Generate actionable plan from AI
+     * Returns structured JSON plan that can be executed
+     */
+    async _generatePlan(moduleName, language, type, structure, convention, customRequirements, options) {
+        const style = this.codingStyles[options.style];
+        
+        const planPrompt = `Generate a detailed implementation plan for a ${type} module in ${language}.
+
+MODULE: ${moduleName}
+TYPE: ${type}
+LANGUAGE: ${language}
+
+REQUIREMENTS:
+- Patterns: ${structure.patterns.join(', ')}
+- Operations: ${structure.operations.join(', ')}
+- Must have: ${structure.includes.join(', ')}
+${customRequirements ? `- Additional: ${customRequirements}` : ''}
+
+LANGUAGE CONVENTIONS:
+- File extension: ${convention.fileExt}
+- File naming: ${convention.fileNaming}
+- Function naming: ${convention.functionNaming}
+- Package structure: ${convention.packageStructure}
+
+CODING STYLE: ${style.name}
+
+OUTPUT A JSON PLAN with this exact structure:
+
+{
+  "module": "${moduleName}",
+  "language": "${language}",
+  "type": "${type}",
+  "directories": [
+    "models",
+    "handlers",
+    "tests"
+  ],
+  "files": [
+    {
+      "path": "mod.rs",
+      "type": "main",
+      "description": "Main module file with exports",
+      "functions": [
+        {
+          "name": "init",
+          "signature": "pub fn init() -> Result<(), Error>",
+          "description": "Initialize the module",
+          "returns": "Result<(), Error>"
+        }
+      ],
+      "structs": [
+        {
+          "name": "Config",
+          "fields": ["host: String", "port: u16"],
+          "description": "Configuration structure"
+        }
+      ],
+      "imports": ["std::error::Error"],
+      "exports": ["init", "Config"]
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "tokio",
+      "version": "1.0",
+      "reason": "Async runtime"
+    }
+  ],
+  "testStrategy": {
+    "framework": "rust built-in",
+    "coverage": ["unit tests", "integration tests"],
+    "files": ["tests/mod_test.rs"]
+  }
+}
+
+RULES:
+1. Include ALL files needed (main, models, handlers, tests, config)
+2. Each file must have: path, type, description, functions, structs (if applicable)
+3. Each function needs: name, signature, description, returns
+4. Specify all imports and exports
+5. List dependencies with versions
+6. Define test strategy
+7. Output ONLY valid JSON, no markdown, no explanations
+
+Generate the complete plan now:`;
+
+        const response = await this._generateWithAI(planPrompt);
+        
+        // Parse JSON from response
+        const plan = this._parsePlanJSON(response);
+        
+        return plan;
+    }
+
+    /**
+     * Parse JSON plan from AI response (handles markdown wrapping)
+     */
+    _parsePlanJSON(response) {
+        // Remove markdown code blocks if present
+        let jsonStr = response.trim();
+        jsonStr = jsonStr.replace(/^```json?\n?/i, '').replace(/\n?```$/,'').trim();
+        
+        try {
+            const plan = JSON.parse(jsonStr);
+            
+            // Validate required fields
+            if (!plan.module || !plan.language || !plan.files) {
+                throw new Error('Plan missing required fields: module, language, files');
+            }
+            
+            if (!Array.isArray(plan.files) || plan.files.length === 0) {
+                throw new Error('Plan must include at least one file');
+            }
+            
+            return plan;
+        } catch (error) {
+            throw new Error(`Failed to parse plan JSON: ${error.message}\nResponse: ${jsonStr.substring(0, 200)}`);
+        }
+    }
+
+    /**
+     * PHASE 2: Execute the plan - create directories and files
+     */
+    async _executePlan(plan, moduleDir, convention) {
+        const createdFiles = [];
+        
+        // Create base module directory
+        if (!fs.existsSync(moduleDir)) {
+            fs.mkdirSync(moduleDir, { recursive: true });
+        }
+        
+        // Create subdirectories from plan
+        if (plan.directories && Array.isArray(plan.directories)) {
+            for (const dir of plan.directories) {
+                const dirPath = path.join(moduleDir, dir);
+                if (!fs.existsSync(dirPath)) {
+                    fs.mkdirSync(dirPath, { recursive: true });
+                }
+            }
+        }
+        
+        // Generate and write each file from plan
+        for (const fileSpec of plan.files) {
+            const fileContent = this._generateFileFromSpec(fileSpec, plan, convention);
+            const filePath = path.join(moduleDir, fileSpec.path);
+            
+            // Ensure parent directory exists
+            const fileDir = path.dirname(filePath);
+            if (!fs.existsSync(fileDir)) {
+                fs.mkdirSync(fileDir, { recursive: true });
+            }
+            
+            fs.writeFileSync(filePath, fileContent);
+            
+            // Count stubs
+            const stubs = this.detectStubs(filePath);
+            
+            createdFiles.push({
+                path: filePath,
+                name: fileSpec.path,
+                type: fileSpec.type,
+                description: fileSpec.description,
+                stubs: stubs.length,
+                stubList: stubs,
+                functions: fileSpec.functions?.length || 0,
+                structs: fileSpec.structs?.length || 0
+            });
+        }
+        
+        return {
+            files: createdFiles,
+            directories: plan.directories || []
+        };
+    }
+
+    /**
+     * Generate file content from file specification
+     */
+    _generateFileFromSpec(fileSpec, plan, convention) {
+        const lines = [];
+        const language = plan.language.toLowerCase();
+        
+        // Add file header comment
+        lines.push(`// ${fileSpec.description || fileSpec.path}`);
+        lines.push(`// Generated stub for ${plan.module}`);
+        lines.push('');
+        
+        // Add imports
+        if (fileSpec.imports && fileSpec.imports.length > 0) {
+            if (language === 'rust') {
+                fileSpec.imports.forEach(imp => lines.push(`use ${imp};`));
+            } else if (language === 'go') {
+                lines.push('import (');
+                fileSpec.imports.forEach(imp => lines.push(`\t"${imp}"`));
+                lines.push(')');
+            } else if (['javascript', 'typescript'].includes(language)) {
+                fileSpec.imports.forEach(imp => lines.push(`import ${imp};`));
+            } else if (language === 'python') {
+                fileSpec.imports.forEach(imp => lines.push(`import ${imp}`));
+            }
+            lines.push('');
+        }
+        
+        // Add structs/classes
+        if (fileSpec.structs && fileSpec.structs.length > 0) {
+            fileSpec.structs.forEach(struct => {
+                lines.push(`/// ${struct.description || struct.name}`);
+                
+                if (language === 'rust') {
+                    lines.push(`pub struct ${struct.name} {`);
+                    if (struct.fields) {
+                        struct.fields.forEach(field => lines.push(`    pub ${field},`));
+                    }
+                    lines.push('}');
+                } else if (language === 'go') {
+                    lines.push(`type ${struct.name} struct {`);
+                    if (struct.fields) {
+                        struct.fields.forEach(field => lines.push(`\t${field}`));
+                    }
+                    lines.push('}');
+                } else if (['javascript', 'typescript'].includes(language)) {
+                    lines.push(`export class ${struct.name} {`);
+                    if (struct.fields) {
+                        struct.fields.forEach(field => lines.push(`  ${field};`));
+                    }
+                    lines.push('}');
+                } else if (language === 'python') {
+                    lines.push(`class ${struct.name}:`);
+                    lines.push(`    """${struct.description || struct.name}"""`);
+                    if (struct.fields) {
+                        lines.push('    def __init__(self):');
+                        struct.fields.forEach(field => {
+                            const fieldName = field.split(':')[0].trim();
+                            lines.push(`        self.${fieldName} = None`);
+                        });
+                    } else {
+                        lines.push('    pass');
+                    }
+                }
+                lines.push('');
+            });
+        }
+        
+        // Add functions
+        if (fileSpec.functions && fileSpec.functions.length > 0) {
+            fileSpec.functions.forEach(func => {
+                lines.push(`/// ${func.description || func.name}`);
+                
+                if (language === 'rust') {
+                    lines.push(`${func.signature} {`);
+                    lines.push(`    unimplemented!("${func.name}")`);
+                    lines.push('}');
+                } else if (language === 'go') {
+                    lines.push(`${func.signature} {`);
+                    lines.push(`    // TODO: Implement ${func.name}`);
+                    lines.push(`    panic("not implemented")`);
+                    lines.push('}');
+                } else if (language === 'typescript') {
+                    lines.push(`${func.signature} {`);
+                    lines.push(`    // TODO: Implement ${func.name}`);
+                    lines.push(`    throw new Error("Not implemented");`);
+                    lines.push('}');
+                } else if (language === 'javascript') {
+                    lines.push(`${func.signature} {`);
+                    lines.push(`    // TODO: Implement ${func.name}`);
+                    lines.push(`    throw new Error("Not implemented");`);
+                    lines.push('}');
+                } else if (language === 'python') {
+                    lines.push(`${func.signature}:`);
+                    lines.push(`    """${func.description || func.name}"""`);
+                    lines.push(`    raise NotImplementedError("${func.name}")`);
+                }
+                lines.push('');
+            });
+        }
+        
+        return lines.join('\n');
     }
 
     /**
@@ -279,6 +552,17 @@ Provide ONLY the code files in this format:
 === FILE: <filename>_test${convention.fileExt} ===
 <complete test file content>
 
+IMPORTANT: File names should be RELATIVE to the module root (no src/ prefix).
+Examples:
+- CORRECT: mod.rs, lib.rs, service.go, handler.go
+- CORRECT: models/user.rs, handlers/http.go (with subdirectory)
+- WRONG: src/websocket/mod.rs, src/models/user.rs (removes src/ prefix)
+
+For Rust: Use mod.rs as the main module file.
+For Go: Use <module>.go as the main file.
+For Python: Use __init__.py as the package entry.
+For TypeScript/JavaScript: Use index.ts/index.js as entry.
+
 Do NOT include explanations, only the files.`;
 
         return prompt;
@@ -325,13 +609,32 @@ Do NOT include explanations, only the files.`;
         let match;
         
         while ((match = fileRegex.exec(response)) !== null) {
-            const filename = match[1];
+            let filename = match[1];
             let content = match[2].trim();
             
             // Remove markdown code blocks if present
             content = content.replace(/^```[\w]*\n|```$/g, '').trim();
             
+            // Fix: Remove src/<moduleName>/ prefix if AI included it
+            // This prevents path duplication like /src/websocket/src/websocket/mod.rs
+            const moduleBasename = path.basename(moduleDir);
+            const duplicatePrefix = `src/${moduleBasename}/`;
+            if (filename.startsWith(duplicatePrefix)) {
+                filename = filename.substring(duplicatePrefix.length);
+            }
+            // Also handle just src/ prefix
+            if (filename.startsWith('src/')) {
+                filename = filename.substring(4);
+            }
+            
             const filePath = path.join(moduleDir, filename);
+            
+            // Ensure parent directory exists
+            const fileDir = path.dirname(filePath);
+            if (!fs.existsSync(fileDir)) {
+                fs.mkdirSync(fileDir, { recursive: true });
+            }
+            
             fs.writeFileSync(filePath, content);
             
             // Count stubs

@@ -91,6 +91,7 @@ class ExtensionManager {
 
         this.extensions = new Map();
         this.loadedExtensions = [];
+        this.commandMap = new Map(); // Map command names to extension names
         
         // Ensure directories exist
         if (!fs.existsSync(this.extensionsDir)) {
@@ -108,14 +109,29 @@ class ExtensionManager {
      */
     async loadExtensions() {
         try {
-            const files = fs.readdirSync(this.extensionsDir)
-                .filter(f => f.endsWith('.js') && !f.startsWith('.'));
-
-            for (const file of files) {
+            const items = fs.readdirSync(this.extensionsDir);
+            
+            for (const item of items) {
+                if (item.startsWith('.')) continue;
+                
+                const itemPath = path.join(this.extensionsDir, item);
+                const stat = fs.statSync(itemPath);
+                
                 try {
-                    await this.loadExtension(file.replace('.js', ''));
+                    if (stat.isFile() && item.endsWith('.js')) {
+                        // Single .js file extension
+                        await this.loadExtension(item.replace('.js', ''));
+                    } else if (stat.isDirectory()) {
+                        // Directory-based extension (check for index.js or extension.json)
+                        const hasIndex = fs.existsSync(path.join(itemPath, 'index.js'));
+                        const hasManifest = fs.existsSync(path.join(itemPath, 'extension.json'));
+                        
+                        if (hasIndex || hasManifest) {
+                            await this.loadExtension(item);
+                        }
+                    }
                 } catch (error) {
-                    console.error(chalk.red(`Failed to load extension ${file}: ${error.message}`));
+                    console.error(chalk.red(`Failed to load extension ${item}: ${error.message}`));
                 }
             }
 
@@ -139,10 +155,21 @@ class ExtensionManager {
      */
     async loadExtension(name) {
         try {
-            const extensionPath = path.join(this.extensionsDir, `${name}.js`);
+            // Try as single file first
+            let extensionPath = path.join(this.extensionsDir, `${name}.js`);
             
+            // If not found, try as directory with index.js
             if (!fs.existsSync(extensionPath)) {
-                throw new Error(`Extension file not found: ${extensionPath}`);
+                const dirPath = path.join(this.extensionsDir, name);
+                if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
+                    extensionPath = path.join(dirPath, 'index.js');
+                    
+                    if (!fs.existsSync(extensionPath)) {
+                        throw new Error(`Extension entry point not found: ${extensionPath}`);
+                    }
+                } else {
+                    throw new Error(`Extension not found: ${name}`);
+                }
             }
 
             // Clear require cache to allow reloading
@@ -158,6 +185,13 @@ class ExtensionManager {
 
             this.extensions.set(name, extension);
             this.loadedExtensions.push(name);
+            
+            // Build command map for all extension commands
+            const commands = extension.commands || [];
+            for (const cmd of commands) {
+                const cmdName = typeof cmd === 'string' ? cmd : cmd.name;
+                this.commandMap.set(cmdName, name);
+            }
 
             return {
                 success: true,
@@ -258,10 +292,21 @@ class ExtensionManager {
     }
 
     /**
-     * Get extension
+     * Get extension by name or command
      */
     getExtension(name) {
-        return this.extensions.get(name);
+        // Try direct lookup first
+        let extension = this.extensions.get(name);
+        
+        // If not found, try command map
+        if (!extension) {
+            const extensionName = this.commandMap.get(name);
+            if (extensionName) {
+                extension = this.extensions.get(extensionName);
+            }
+        }
+        
+        return extension;
     }
 
     /**

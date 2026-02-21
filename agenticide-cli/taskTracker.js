@@ -1,13 +1,50 @@
 // Task Tracker Integration - Manages tasks for stub workflow
+// Now integrates with enhanced TaskManager for dependency resolution
 const fs = require('fs');
 const path = require('path');
 const ProgressTracker = require('./core/progressTracker');
+const { TaskManager } = require('../agenticide-core/taskManager');
+const { DependencyResolver } = require('../agenticide-core/dependencyResolver');
+const { TaskExecutor } = require('../agenticide-core/taskExecutor');
 
 class TaskTracker {
     constructor(projectPath = '.') {
         this.projectPath = projectPath;
         this.taskFile = path.join(projectPath, '.agenticide-tasks.json');
         this.progress = new ProgressTracker();
+        
+        // Initialize enhanced task manager
+        const dbPath = path.join(require('os').homedir(), '.agenticide', 'projects.db');
+        this.taskManager = new TaskManager(dbPath);
+        this.resolver = new DependencyResolver(this.taskManager);
+        this.executor = new TaskExecutor(this.taskManager, {
+            maxConcurrency: 3,
+            autoStart: false
+        });
+
+        // Listen to real-time events
+        this.setupEventListeners();
+    }
+
+    /**
+     * Setup real-time event listeners
+     */
+    setupEventListeners() {
+        this.taskManager.on('task:event', ({ taskId, eventType, message }) => {
+            console.log(`[${eventType}] ${taskId}: ${message}`);
+        });
+
+        this.executor.on('task:started', ({ taskId, task }) => {
+            console.log(`▶️  Starting: ${task.title}`);
+        });
+
+        this.executor.on('task:completed', ({ taskId, task, duration }) => {
+            console.log(`✅ Completed: ${task.title} (${Math.round(duration/1000)}s)`);
+        });
+
+        this.executor.on('task:failed', ({ taskId, task, error }) => {
+            console.error(`❌ Failed: ${task.title} - ${error}`);
+        });
     }
 
     /**
@@ -257,29 +294,40 @@ class TaskTracker {
     }
 
     /**
-     * Export tasks to markdown checklist
+     * Get ready tasks from enhanced system
      */
-    exportToMarkdown() {
-        const data = this.loadTasks();
-        const modules = data.modules || [];
-        
-        let markdown = '# Agenticide Tasks\n\n';
-        
-        modules.forEach(module => {
-            const moduleTasks = data.tasks.filter(t => t.moduleId === module.id);
-            markdown += `## ${module.name} (${module.progress}%)\n\n`;
-            markdown += `**Type:** ${module.type} | **Language:** ${module.language} | **Style:** ${module.style}\n`;
-            markdown += `**Status:** ${module.status} | **Created:** ${new Date(module.createdAt).toLocaleDateString()}\n\n`;
-            
-            moduleTasks.forEach(task => {
-                const checkbox = task.status === 'done' ? '[x]' : '[ ]';
-                markdown += `- ${checkbox} \`${task.function}\` (${task.file})\n`;
-            });
-            
-            markdown += '\n';
-        });
+    getReadyTasks() {
+        return this.taskManager.getReadyTasks();
+    }
 
-        return markdown;
+    /**
+     * Get dependency tree
+     */
+    getDependencyTree() {
+        return this.resolver.getParallelGroups();
+    }
+
+    /**
+     * Execute next ready task
+     */
+    async executeNext() {
+        return await this.executor.executeNext();
+    }
+
+    /**
+     * Execute all tasks in dependency order
+     */
+    async executeAll() {
+        return await this.executor.executeAll();
+    }
+
+    /**
+     * Close database connections
+     */
+    close() {
+        if (this.taskManager) {
+            this.taskManager.close();
+        }
     }
 }
 

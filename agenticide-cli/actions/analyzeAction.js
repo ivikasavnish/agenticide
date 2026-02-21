@@ -5,7 +5,7 @@ const path = require('path');
 
 module.exports = function createAnalyzeAction(CONFIG_DIR) {
     return async (options) => {
-        const { LSPAnalyzer } = require('../lspAnalyzer');
+        const { LSPAnalyzer } = require('../../agenticide-core/lspAnalyzer');
         const Database = require('better-sqlite3');
         
         const spinner = ora('Analyzing project...').start();

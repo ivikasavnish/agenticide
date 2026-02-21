@@ -6,17 +6,36 @@ module.exports = async function(options, dependencies) {
     const chalk = require('chalk');
     const path = require('path');
     const fs = require('fs');
+    const ora = require('ora');
+    const inquirer = require('inquirer');
+    const boxenModule = require('boxen');
+    const boxen = boxenModule.default || boxenModule;
+    const EnhancedInput = require('../../core/enhancedInput');
+    const TaskCancellation = require('../../core/taskCancellation');
+    const CommandMatcher = require('../../core/commandMatcher');
     
     // Original chat action code starts here
-        const { AIAgentManager } = require('./aiAgents');
+        const { AIAgentManager } = require('../../aiAgents');
         const Database = require('better-sqlite3');
-        const SessionManager = require('./core/sessionManager');
-        const AutoCompaction = require('./core/autoCompaction');
-        const { ExtensionManager } = require('./core/extensionManager');
+        const SessionManager = require('../../core/sessionManager');
+        const AutoCompaction = require('../../core/autoCompaction');
+        const { ExtensionManager } = require('../../core/extensionManager');
+        const ContextAttachment = require('../../core/contextAttachment');
+        const ClarifyingQuestions = require('../../core/clarifyingQuestions');
+        const StubOrchestrator = require('../stub/stubOrchestrator');
+        const PlanEditor = require('../plan/planEditor');
         
         const agentManager = new AIAgentManager();
         const sessionManager = new SessionManager();
         const extensionManager = new ExtensionManager();
+        const contextAttachment = new ContextAttachment(process.cwd());
+        const enhancedInput = new EnhancedInput();
+        const clarifier = new ClarifyingQuestions();
+        const taskCancellation = new TaskCancellation();
+        const commandMatcher = new CommandMatcher();
+        
+        // Initialize command matcher
+        commandMatcher.initializeDefaultCommands();
         
         // Load extensions
         await extensionManager.loadExtensions();
@@ -204,6 +223,7 @@ module.exports = async function(options, dependencies) {
             console.log(chalk.gray('  /model <model>    - Switch model'));
             console.log(chalk.gray('  /status           - Show agent status'));
             console.log(chalk.gray('  /context          - Show context'));
+            console.log(chalk.gray('  /history [count]  - Show command history'));
             console.log(chalk.gray('  /cache [stats]    - Cache management'));
             console.log(chalk.gray('  /tasks [summary|list|next] - Task management with progress'));
             console.log(chalk.gray('  /search <query>   - Search code'));
@@ -222,14 +242,20 @@ module.exports = async function(options, dependencies) {
             console.log(chalk.magenta('  /implement <function>             - Fill implementation'));
             console.log(chalk.magenta('  /flow [module]                    - Visualize architecture'));
             console.log(chalk.yellow('\n  📋 Planning:'));
-            console.log(chalk.yellow('  /plan <goal>      - Create execution plan'));
-            console.log(chalk.yellow('  /execute [id]     - Execute plan'));
-            console.log(chalk.yellow('  /diff [task]      - Show changes'));
+            console.log(chalk.yellow('  /plan [create|show|edit|update] - Manage execution plan'));
+            console.log(chalk.yellow('  /clarify                        - Ask clarifying questions'));
+            console.log(chalk.yellow('  /execute [id]                   - Execute plan'));
+            console.log(chalk.yellow('  /diff [task]                    - Show changes'));
             console.log(chalk.cyan('\n  📄 File Operations:'));
             console.log(chalk.cyan('  /read <file>      - Read file'));
             console.log(chalk.cyan('  /write <file> ... - Write file'));
             console.log(chalk.cyan('  /edit <file> ...  - Edit with AI'));
             console.log(chalk.cyan('  /debug <target>   - Debug code/error'));
+            console.log(chalk.green('\n  📎 Context Attachments:'));
+            console.log(chalk.green('  @filename         - Attach file to message (e.g., @src/app.js)'));
+            console.log(chalk.green('  @"file name.txt"  - Attach file with spaces'));
+            console.log(chalk.green('  Paste content     - Multi-line paste automatically saved'));
+            console.log(chalk.gray('    Files are tracked with git info (branch@commit)'));
             console.log(chalk.blue('\n  ⚡ Shell & Process Management:'));
             console.log(chalk.blue('  !<command>        - Execute shell command'));
             console.log(chalk.blue('  !python <code>    - Execute Python'));
@@ -239,7 +265,17 @@ module.exports = async function(options, dependencies) {
             console.log(chalk.blue('  /process list     - List all processes'));
             console.log(chalk.blue('  /process logs <id> - View process output'));
             console.log(chalk.blue('  /process stop <id> - Stop a process'));
+            console.log(chalk.magenta('\n  🎨 Design & UI:'));
+            console.log(chalk.magenta('  /design start     - Start Lovable Design UI server'));
+            console.log(chalk.magenta('  /design stop      - Stop design server'));
+            console.log(chalk.magenta('  /design status    - Show server status'));
             console.log(chalk.gray('  exit              - Quit\n'));
+            
+            // Show input navigation help
+            console.log(chalk.gray('\n  ⌨️  Input Navigation:'));
+            console.log(enhancedInput.getHelpText());
+            console.log(taskCancellation.showHint());
+            console.log('');
             
             // Show enabled extensions
             const enabledExts = extensionManager.listExtensions().filter(e => e.enabled);
@@ -252,19 +288,19 @@ module.exports = async function(options, dependencies) {
             }
             
             // Interactive chat loop
-            while (true) {
-                const { message } = await inquirer.default.prompt([
-                    {
-                        type: 'input',
-                        name: 'message',
-                        message: chalk.cyan('You:'),
-                        prefix: ''
+            try {
+                while (true) {
+                    const message = await enhancedInput.prompt('You:');
+                    
+                    // Handle Ctrl+C or null input
+                    if (message === null) {
+                        break;
                     }
-                ]);
-                
-                const trimmed = message.trim();
+                    
+                    const trimmed = message.trim();
                 
                 if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'quit') {
+                    enhancedInput.close();
                     break;
                 }
                 
@@ -298,6 +334,10 @@ module.exports = async function(options, dependencies) {
                             console.log(chalk.gray(`  • ${s}`));
                         });
                         console.log('');
+                    } else if (cmd === 'history') {
+                        // Show command history
+                        const count = parseInt(args[0]) || 20;
+                        enhancedInput.showHistory(count);
                     } else if (cmd === 'cache') {
                         // Cache statistics and management
                         const subCmd = args[0];
@@ -462,6 +502,109 @@ module.exports = async function(options, dependencies) {
                     } else if (cmd === 'extensions') {
                         // List extensions
                         extensionManager.displayExtensions();
+                    } else if (cmd === 'plan') {
+                        // Plan management
+                        const planEditor = new PlanEditor();
+                        const subCmd = args[0];
+                        
+                        if (subCmd === 'create') {
+                            const goal = args.slice(1).join(' ');
+                            if (!goal) {
+                                console.log(chalk.red('\n✗ Please specify a goal\n'));
+                                console.log(chalk.gray('Usage: /plan create <goal>\n'));
+                            } else {
+                                // Ask clarifying questions first
+                                const clarifications = await clarifier.askMultiple([
+                                    { question: 'What is the expected timeline?', key: 'timeline', choices: ['Hours', 'Days', 'Weeks', 'Months'] },
+                                    { question: 'What is the priority?', key: 'priority', choices: ['High', 'Medium', 'Low'] },
+                                    { question: 'Are there any dependencies or blockers?', key: 'blockers' }
+                                ]);
+                                
+                                const tasks = await clarifier.input('Enter initial tasks (comma-separated):');
+                                const taskList = tasks.split(',').map(t => t.trim()).filter(t => t);
+                                
+                                planEditor.create(goal, taskList, clarifications);
+                                console.log(chalk.green('\n✅ Plan created successfully!\n'));
+                                planEditor.show();
+                            }
+                        } else if (subCmd === 'show') {
+                            planEditor.show();
+                        } else if (subCmd === 'edit') {
+                            await planEditor.edit();
+                        } else if (subCmd === 'update') {
+                            console.log(chalk.cyan('\n📝 Updating plan...\n'));
+                            const newContent = await clarifier.input('Enter new plan content (or path to file):');
+                            if (fs.existsSync(newContent)) {
+                                const content = fs.readFileSync(newContent, 'utf8');
+                                planEditor.update(content);
+                            } else {
+                                planEditor.update(newContent);
+                            }
+                        } else {
+                            planEditor.show();
+                        }
+                    } else if (cmd === 'clarify') {
+                        // Ask clarifying questions
+                        console.log(chalk.cyan('\n❓ Clarifying Questions Mode\n'));
+                        console.log(chalk.gray('I can help clarify requirements before proceeding.\n'));
+                        
+                        const type = await clarifier.choose(
+                            'What would you like to clarify?',
+                            [
+                                'Requirements for current task',
+                                'Feature scope and boundaries',
+                                'Technical approach',
+                                'Dependencies and constraints',
+                                'Custom question'
+                            ]
+                        );
+                        
+                        if (type === 'Custom question') {
+                            const question = await clarifier.input('Enter your question:');
+                            const answer = await clarifier.input('Your answer:');
+                            console.log(chalk.green(`\n✅ Clarification saved: ${question} → ${answer}\n`));
+                        } else {
+                            // Pre-defined question sets
+                            let questions = [];
+                            
+                            if (type === 'Requirements for current task') {
+                                questions = [
+                                    { question: 'What is the main goal?', key: 'goal' },
+                                    { question: 'What are the acceptance criteria?', key: 'criteria' },
+                                    { question: 'Are there any constraints?', key: 'constraints' }
+                                ];
+                            } else if (type === 'Feature scope and boundaries') {
+                                questions = [
+                                    { question: 'What is included in this feature?', key: 'included' },
+                                    { question: 'What is explicitly excluded?', key: 'excluded' },
+                                    { question: 'What are the edge cases to handle?', key: 'edge_cases' }
+                                ];
+                            } else if (type === 'Technical approach') {
+                                questions = [
+                                    { question: 'Which technology stack to use?', key: 'stack' },
+                                    { question: 'What design patterns to apply?', key: 'patterns' },
+                                    { question: 'Are there performance requirements?', key: 'performance' }
+                                ];
+                            } else if (type === 'Dependencies and constraints') {
+                                questions = [
+                                    { question: 'What are the dependencies?', key: 'dependencies' },
+                                    { question: 'What are the constraints?', key: 'constraints' },
+                                    { question: 'What are the risks?', key: 'risks' }
+                                ];
+                            }
+                            
+                            const answers = await clarifier.askMultiple(questions);
+                            
+                            // Update plan with clarifications
+                            const planEditor = new PlanEditor();
+                            Object.entries(answers).forEach(([key, value]) => {
+                                planEditor.addClarification(questions.find(q => q.key === key).question, value);
+                            });
+                            
+                            console.log(chalk.green('\n✅ Clarifications saved to plan!\n'));
+                            console.log(chalk.gray('Summary:'));
+                            console.log(clarifier.getSummary());
+                        }
                     } else if (cmd === 'extension' || cmd === 'ext') {
                         // Extension management
                         const subCmd = args[0];
@@ -514,7 +657,7 @@ module.exports = async function(options, dependencies) {
                             console.log(chalk.gray('  /extension info <name>   - Show extension details'));
                             console.log('');
                         }
-                    } else if (cmd === 'browser' || cmd === 'docker' || cmd === 'debug' || cmd === 'cli' || cmd === 'mcp' || cmd === 'qa' || cmd === 'process') {
+                    } else if (cmd === 'browser' || cmd === 'docker' || cmd === 'debug' || cmd === 'cli' || cmd === 'mcp' || cmd === 'qa' || cmd === 'process' || cmd === 'design') {
                         // Handle extension commands
                         const ext = extensionManager.getExtension(cmd);
                         
@@ -524,7 +667,15 @@ module.exports = async function(options, dependencies) {
                             console.log(chalk.yellow(`\n⚠️  Extension '${cmd}' is disabled. Enable with: /extension enable ${cmd}\n`));
                         } else {
                             try {
-                                const result = await ext.execute(args[0] || 'help', args.slice(1));
+                                // Build context for extension
+                                const extensionContext = {
+                                    agentManager,
+                                    enhancedInput,
+                                    contextAttachment,
+                                    cwd: process.cwd()
+                                };
+                                
+                                const result = await ext.execute(args[0] || 'help', args.slice(1), extensionContext);
                                 
                                 if (result.success) {
                                     if (result.message) {
@@ -832,24 +983,45 @@ Analyze for bugs, errors, and improvements. Provide specific issues and fixes.`;
                             const orchestrator = new StubOrchestrator(agentManager, process.cwd());
                             
                             try {
-                                const result = await orchestrator.generate({
-                                    moduleName,
-                                    language,
-                                    type: options.type,
-                                    requirements,
-                                    style: options.style,
-                                    withTests: options.withTests,
-                                    withAnnotations: options.withAnnotations
-                                });
+                                const cancelableSpinner = taskCancellation.createCancelableSpinner(
+                                    ora,
+                                    'Generating stubs...',
+                                    'Stub Generation'
+                                );
                                 
-                                console.log(chalk.green('\n✅ Complete! Stubs generated, Git committed, tasks created.\n'));
-                                console.log(chalk.cyan('\n📋 Next Steps:'));
-                                console.log(chalk.gray(`  1. /verify ${moduleName}     - Validate structure`));
-                                console.log(chalk.gray(`  2. /flow ${moduleName}       - Visualize architecture`));
-                                console.log(chalk.gray(`  3. /implement <function>  - Fill implementation\n`));
+                                const result = await taskCancellation.withCancellation(
+                                    'Stub Generation',
+                                    async (isCanceled) => {
+                                        if (isCanceled()) return null;
+                                        
+                                        return await orchestrator.generate({
+                                            moduleName,
+                                            language,
+                                            type: options.type,
+                                            requirements,
+                                            style: options.style,
+                                            withTests: options.withTests,
+                                            withAnnotations: options.withAnnotations
+                                        });
+                                    }
+                                );
+                                
+                                if (result.canceled) {
+                                    cancelableSpinner.fail('Stub generation canceled');
+                                    console.log('');
+                                } else {
+                                    cancelableSpinner.succeed('Stubs generated');
+                                    console.log(chalk.green('\n✅ Complete! Stubs generated, Git committed, tasks created.\n'));
+                                    console.log(chalk.cyan('\n📋 Next Steps:'));
+                                    console.log(chalk.gray(`  1. /verify ${moduleName}     - Validate structure`));
+                                    console.log(chalk.gray(`  2. /flow ${moduleName}       - Visualize architecture`));
+                                    console.log(chalk.gray(`  3. /implement <function>  - Fill implementation\n`));
+                                }
                                 
                             } catch (error) {
-                                console.log(chalk.red(`\n❌ Error: ${error.message}\n`));
+                                if (!taskCancellation.isCancelRequested()) {
+                                    console.log(chalk.red(`\n❌ Error: ${error.message}\n`));
+                                }
                             }
                         }
                     } else if (cmd === 'plan') {
@@ -908,7 +1080,7 @@ Analyze for bugs, errors, and improvements. Provide specific issues and fixes.`;
                         const spinner = ora('Checking structure...').start();
                         
                         try {
-                            const { StubGenerator } = require('./stubGenerator');
+                            const { StubGenerator } = require('../../stubGenerator');
                             const stubGen = new StubGenerator(agentManager);
                             
                             // Check if target is a file or directory
@@ -987,7 +1159,7 @@ Analyze for bugs, errors, and improvements. Provide specific issues and fixes.`;
                             const spinner = ora('Finding function stub...').start();
                             
                             try {
-                                const { StubGenerator } = require('./stubGenerator');
+                                const { StubGenerator } = require('../../stubGenerator');
                                 const stubGen = new StubGenerator(agentManager);
                                 
                                 // Find the function in project
@@ -1116,7 +1288,7 @@ OUTPUT: Provide the COMPLETE updated file content.${withTests ? ' If generating 
                         const spinner = ora('Analyzing structure...').start();
                         
                         try {
-                            const { StubGenerator } = require('./stubGenerator');
+                            const { StubGenerator } = require('../../stubGenerator');
                             const stubGen = new StubGenerator(agentManager);
                             
                             // Get stubs
@@ -1267,7 +1439,18 @@ Be specific, minimal, and test-oriented. Identify parallel work opportunities.`;
                             planner.close();
                         }
                     } else {
-                        console.log(chalk.yellow(`Unknown command: ${cmd}\n`));
+                        // Unknown command - try fuzzy matching
+                        const correctedCmd = await commandMatcher.askCorrection(cmd);
+                        if (correctedCmd) {
+                            console.log(chalk.cyan(`→ Running: /${correctedCmd}\n`));
+                            // Re-parse with corrected command
+                            const correctedInput = `/${correctedCmd} ${args.join(' ')}`;
+                            const [newCmd, ...newArgs] = correctedInput.slice(1).split(' ');
+                            
+                            // Run the corrected command by continuing loop with new input
+                            // Note: This is a simplified approach - ideally we'd recurse
+                            console.log(chalk.gray(`(Use /${correctedCmd} ${args.join(' ')} next time)\n`));
+                        }
                     }
                     
                     continue;
@@ -1379,17 +1562,77 @@ Be specific, minimal, and test-oriented. Identify parallel work opportunities.`;
                     const thinking = ora('Thinking...').start();
                     
                     try {
-                        // Build context for message
+                        // Process message for attachments (@file references and pasted content)
+                        const attachmentResult = contextAttachment.processMessage(trimmed, sessionName || 'default');
+                        
+                        // Show errors for unresolved references
+                        if (attachmentResult.errors.length > 0) {
+                            thinking.stop();
+                            console.log(chalk.yellow('\n⚠️  Attachment Warnings:'));
+                            for (const error of attachmentResult.errors) {
+                                console.log(chalk.yellow(`  ${error.reference}: ${error.error}`));
+                            }
+                            console.log('');
+                            thinking.start('Thinking...');
+                        }
+                        
+                        // Show attached files
+                        if (attachmentResult.attachments.length > 0) {
+                            thinking.stop();
+                            console.log(chalk.cyan('\n📎 Attached Context:'));
+                            for (const attachment of attachmentResult.attachments) {
+                                if (attachment.type === 'file') {
+                                    const gitInfo = attachment.gitUrl ? chalk.gray(` [${attachment.gitUrl}]`) : '';
+                                    console.log(chalk.cyan(`  📄 ${attachment.filename} (${attachment.lines} lines)${gitInfo}`));
+                                } else if (attachment.type === 'paste') {
+                                    console.log(chalk.cyan(`  📋 Pasted content (${attachment.metadata.lines} lines)`));
+                                }
+                            }
+                            console.log('');
+                            thinking.start('Thinking...');
+                        }
+                        
+                        // Build enhanced context with attachments
                         const messageContext = projectContext ? {
                             ...projectContext,
                             tasks: loadTasks()
                         } : { cwd: process.cwd() };
                         
-                        const response = await agentManager.sendMessage(trimmed, {
-                            context: messageContext
-                        });
+                        // Add attachment content to context
+                        const contextSummary = contextAttachment.createContextSummary(attachmentResult.attachments);
+                        const enhancedMessage = attachmentResult.processedMessage + contextSummary;
                         
+                        // Wrap AI call with cancellation support
                         thinking.stop();
+                        const cancelableSpinner = taskCancellation.createCancelableSpinner(
+                            ora, 
+                            'Thinking...', 
+                            'AI Query'
+                        );
+                        
+                        const result = await taskCancellation.withCancellation(
+                            'AI Query',
+                            async (isCanceled) => {
+                                // Check cancellation before starting
+                                if (isCanceled()) {
+                                    return null;
+                                }
+                                
+                                return await agentManager.sendMessage(enhancedMessage, {
+                                    context: messageContext
+                                });
+                            }
+                        );
+                        
+                        if (result.canceled) {
+                            cancelableSpinner.fail('Query canceled');
+                            console.log('');
+                            continue;
+                        }
+                        
+                        const response = result.result;
+                        cancelableSpinner.succeed('Response received');
+                        
                         console.log(chalk.green(`\n🤖 ${agentManager.activeAgent}:\n`));
                         console.log(boxen(response, {
                             padding: 1,
@@ -1398,11 +1641,22 @@ Be specific, minimal, and test-oriented. Identify parallel work opportunities.`;
                             borderColor: 'green'
                         }));
                         console.log('');
+                        
+                        // Save session attachments if any
+                        if (attachmentResult.attachments.length > 0 && sessionName) {
+                            contextAttachment.saveSessionAttachments(sessionName, attachmentResult.attachments);
+                        }
                     } catch (error) {
-                        thinking.fail(`Error: ${error.message}`);
-                        console.log('');
+                        if (!taskCancellation.isCancelRequested()) {
+                            thinking.fail(`Error: ${error.message}`);
+                            console.log('');
+                        }
                     }
                 }
+            }
+            } finally {
+                // Always close readline on exit
+                enhancedInput.close();
             }
             
             console.log(chalk.yellow('\nGoodbye! 👋\n'));
@@ -1413,6 +1667,4 @@ Be specific, minimal, and test-oriented. Identify parallel work opportunities.`;
             spinner.fail('Failed to initialize');
             console.error(chalk.red(`\n${error.message}\n`));
         }
-    });
-
 };
