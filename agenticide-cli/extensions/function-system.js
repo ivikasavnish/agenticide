@@ -172,6 +172,9 @@ class FunctionSystemExtension extends Extension {
     }
 
     async handleCommand(command, args, context) {
+        // Parse super keywords
+        context = this.parseSuperKeywords(args, context);
+        
         switch (command) {
             case 'function':
             case 'fn':
@@ -415,6 +418,8 @@ class FunctionSystemExtension extends Extension {
     }
 
     async streamFunction(functionName, params = {}, context = {}) {
+        const useUltraloop = context.ultraloop || false;
+        
         const func = this.functions.get(functionName);
         
         if (!func) {
@@ -449,7 +454,8 @@ class FunctionSystemExtension extends Extension {
             started: Date.now(),
             status: 'active',
             events: [],
-            subscribers: new Set()
+            subscribers: new Set(),
+            completed: false
         };
 
         this.streams.set(streamId, stream);
@@ -467,8 +473,12 @@ class FunctionSystemExtension extends Extension {
 
         // Start streaming
         this.eventBus.emit('stream:started', stream);
+        
+        if (useUltraloop) {
+            console.log(chalk.magenta('⚡ ULTRALOOP mode - stream will wait for completion\n'));
+        }
 
-        // Execute with streaming callback
+        // Execute with streaming callback - run async and loop until complete
         const streamCallback = (event) => {
             stream.events.push({
                 timestamp: Date.now(),
@@ -487,15 +497,46 @@ class FunctionSystemExtension extends Extension {
             for (const subscriber of stream.subscribers) {
                 subscriber(event);
             }
+
+            // Check for completion event
+            if (event.type === 'complete' || event.type === 'done' || event.type === 'finished') {
+                stream.completed = true;
+                stream.status = 'completed';
+                stream.stopped = Date.now();
+                this.activeStreams.delete(streamId);
+                this.eventBus.emit('stream:completed', stream);
+            }
         };
 
-        // Run handler
-        try {
-            await func.handler(validation.params, context, streamCallback);
-        } catch (error) {
-            stream.status = 'failed';
-            stream.error = error.message;
-            this.eventBus.emit('stream:error', { streamId, error });
+        // Run handler in background
+        (async () => {
+            try {
+                await func.handler(validation.params, context, streamCallback);
+                
+                // Auto-complete if handler finishes without explicit completion event
+                if (!stream.completed) {
+                    streamCallback({ type: 'complete', auto: true });
+                }
+            } catch (error) {
+                stream.status = 'failed';
+                stream.error = error.message;
+                stream.completed = true;
+                this.activeStreams.delete(streamId);
+                this.eventBus.emit('stream:error', { streamId, error });
+                console.log(chalk.red(`\n  ❌ Stream error: ${error.message}\n`));
+            }
+        })();
+
+        // If ultraloop, wait for completion
+        if (useUltraloop) {
+            const completion = await this.waitForStreamCompletion(streamId);
+            return {
+                success: completion.success,
+                streamId,
+                function: functionName,
+                completed: true,
+                events: stream.events.length
+            };
         }
 
         return {
@@ -503,6 +544,38 @@ class FunctionSystemExtension extends Extension {
             streamId,
             function: functionName
         };
+    }
+
+    async waitForStreamCompletion(streamId, timeout = 60000) {
+        const stream = this.streams.get(streamId);
+        if (!stream) {
+            return { success: false, error: 'Stream not found' };
+        }
+
+        if (stream.completed) {
+            return { success: true, stream };
+        }
+
+        // Loop until complete or timeout
+        const startTime = Date.now();
+        
+        return new Promise((resolve) => {
+            const checkInterval = setInterval(() => {
+                const elapsed = Date.now() - startTime;
+                
+                if (stream.completed) {
+                    clearInterval(checkInterval);
+                    resolve({ success: true, stream });
+                } else if (elapsed > timeout) {
+                    clearInterval(checkInterval);
+                    resolve({ 
+                        success: false, 
+                        error: 'Stream timeout',
+                        stream 
+                    });
+                }
+            }, 100);
+        });
     }
 
     async stopStream(streamId) {
@@ -783,6 +856,22 @@ class FunctionSystemExtension extends Extension {
 
     generateStreamId() {
         return `stream-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+    }
+
+    parseSuperKeywords(args, context = {}) {
+        // Check for ultraloop keyword
+        if (args.includes('ultraloop') || args.includes('--ultraloop')) {
+            context.ultraloop = true;
+            console.log(chalk.magenta.bold('\n⚡ ULTRALOOP activated - streams wait for completion\n'));
+        }
+        
+        // Check for ultrathink keyword
+        if (args.includes('ultrathink') || args.includes('--ultrathink')) {
+            context.ultrathink = true;
+            console.log(chalk.magenta.bold('\n⚡ ULTRATHINK activated - verbose execution\n'));
+        }
+        
+        return context;
     }
 }
 

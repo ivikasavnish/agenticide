@@ -1,0 +1,73 @@
+# Launch configurations for debugging in DevContainer
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Agenticide CLI",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/agenticide-cli/index.js",
+      "args": ["--help"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Debug Agenticide Chat",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/agenticide-cli/index.js",
+      "args": ["chat"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Test Context Attachments",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/test-context-attachment.js",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Test All Bug Fixes",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/test-all-bug-fixes.js",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Extension Development Host",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/agenticide-vscode"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/agenticide-vscode/out/**/*.js"
+      ],
+      "preLaunchTask": "Build VSCode Extension"
+    },
+    {
+      "name": "Attach to Node Process",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/workspace"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Extension + Debug",
+      "configurations": [
+        "Extension Development Host",
+        "Debug Agenticide Chat"
+      ]
+    }
+  ]
+}

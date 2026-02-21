@@ -1,0 +1,29 @@
+{
+  "name": "lovable-design",
+  "version": "1.0.0",
+  "description": "AI-powered browser-based UI design server - create and edit UIs with AI assistance",
+  "author": "Agenticide",
+  "type": "server",
+  "enabled": true,
+  "commands": ["design", "ui", "preview"],
+  "capabilities": [
+    "browser-server",
+    "live-preview",
+    "ai-generation",
+    "console-monitoring",
+    "hot-reload"
+  ],
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2",
+    "chokidar": "^3.5.3",
+    "open": "^9.1.0"
+  },
+  "config": {
+    "defaultPort": 3456,
+    "autoOpen": true,
+    "liveReload": true,
+    "consoleMonitoring": true
+  },
+  "entry": "index.js"
+}

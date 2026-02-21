@@ -1,0 +1,3 @@
+  [22ms]  minify  -1.32 MB (estimate)
+  [10ms]  bundle  1064 modules
+ [106ms] compile  agenticide-bin

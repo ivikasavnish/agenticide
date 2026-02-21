@@ -1,0 +1,118 @@
+# DevContainer CI/CD Workflow
+# Tests the DevContainer setup in GitHub Actions
+
+name: DevContainer Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '.devcontainer/**'
+      - 'agenticide-cli/**'
+      - 'agenticide-core/**'
+      - 'agenticide-vscode/**'
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-devcontainer:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Build and test DevContainer
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            echo "Testing DevContainer setup..."
+            bash .devcontainer/test-container.sh
+      
+      - name: Test Agenticide Commands
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            echo "Testing Agenticide CLI..."
+            agenticide --version
+            agenticide --help
+      
+      - name: Run Integration Tests
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            echo "Running integration tests..."
+            node test-all-bug-fixes.js
+            node test-context-attachment.js
+      
+      - name: Build VSCode Extension
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            echo "Building VSCode extension..."
+            cd agenticide-vscode
+            npm run compile
+            npm run package
+
+  test-multi-platform:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd agenticide-cli && npm install
+          cd ../agenticide-core && npm install
+      
+      - name: Run tests
+        run: |
+          node test-all-bug-fixes.js
+          node test-context-attachment.js
+      
+      - name: Test CLI
+        run: |
+          cd agenticide-cli
+          npm link
+          agenticide --version
+
+  publish-devcontainer-image:
+    needs: [test-devcontainer]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and push DevContainer image
+        uses: docker/build-push-action@v4
+        with:
+          context: .devcontainer
+          file: .devcontainer/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/devcontainer:latest
+            ghcr.io/${{ github.repository }}/devcontainer:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/devcontainer:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/devcontainer:buildcache,mode=max

@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenticide - Hybrid Intelligence Platform</title>
+    <meta name="description" content="Agenticide combines deterministic functions with AI agents for reliable, intelligent automation. Best of both worlds.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a25;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --gradient-1: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --gradient-2: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 20px 0;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .cta-btn {
+            background: var(--gradient-1);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            color: var(--accent-blue);
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 span {
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Hybrid Section */
+        .hybrid-section {
+            padding: 120px 0;
+            position: relative;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .hybrid-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .hybrid-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .hybrid-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .hybrid-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .hybrid-card.center {
+            background: var(--gradient-1);
+            border: none;
+            grid-row: span 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .card-icon.blue { background: rgba(59, 130, 246, 0.2); }
+        .card-icon.green { background: rgba(16, 185, 129, 0.2); }
+        .card-icon.orange { background: rgba(245, 158, 11, 0.2); }
+        .card-icon.purple { background: rgba(139, 92, 246, 0.2); }
+
+        .hybrid-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+
+        .hybrid-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .hybrid-card.center p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Features */
+        .features {
+            padding: 120px 0;
+            background: var(--bg-secondary);
+        }
+
+        .feature-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+            margin-bottom: 80px;
+        }
+
+        @media (max-width: 900px) {
+            .feature-row {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+
+        .feature-row:nth-child(even) .feature-content {
+            order: 2;
+        }
+
+        .feature-row:nth-child(even) .feature-visual {
+            order: 1;
+        }
+
+        @media (max-width: 900px) {
+            .feature-row:nth-child(even) .feature-content,
+            .feature-row:nth-child(even) .feature-visual {
+                order: unset;
+            }
+        }
+
+        .feature-content h3 {
+            font-size: 2rem;
+            margin-bottom: 16px;
+        }
+
+        .feature-content p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        .feature-list li::before {
+            content: ">";
+            color: var(--accent-green);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: bold;
+        }
+
+        .feature-visual {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .code-block {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            background: var(--bg-primary);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        .code-comment { color: #6b7280; }
+        .code-keyword { color: #c084fc; }
+        .code-function { color: #60a5fa; }
+        .code-string { color: #34d399; }
+        .code-variable { color: #f472b6; }
+
+        /* Task Types */
+        .task-types {
+            padding: 120px 0;
+        }
+
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .task-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .task-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .task-card h4 {
+            font-size: 1.125rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-card .duration {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .task-card p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 16px;
+        }
+
+        .task-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .task-tag {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+        }
+
+        .task-tag.ai { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .task-tag.deterministic { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 120px 0;
+            text-align: center;
+            background: var(--bg-secondary);
+        }
+
+        .cta-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            margin-bottom: 32px;
+        }
+
+        /* Footer */
+        footer {
+            padding: 48px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-content p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 600px) {
+            .nav-links { display: none; }
+            .footer-content { flex-direction: column; gap: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">agenticide</div>
+            <ul class="nav-links">
+                <li><a href="#hybrid">Hybrid AI</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#tasks">Task Types</a></li>
+                <li><a href="https://github.com/vikasavnish/agenticide">GitHub</a></li>
+            </ul>
+            <a href="#get-started" class="cta-btn">Get Started</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">Hybrid Intelligence Platform</div>
+                <h1>Not Fully AI.<br>Not Fully Manual.<br><span>Best of Both Worlds.</span></h1>
+                <p>Agenticide combines deterministic functions with AI agents for reliable, intelligent automation. Use AI to generate more deterministic functions.</p>
+                <div class="hero-cta">
+                    <a href="#get-started" class="cta-btn">Start Building</a>
+                    <a href="#learn-more" class="btn-secondary">Learn More</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="hybrid-section" id="hybrid">
+        <div class="container">
+            <div class="section-header">
+                <h2>Hybrid Intelligence Architecture</h2>
+                <p>The perfect balance between predictable deterministic logic and adaptive AI capabilities</p>
+            </div>
+            <div class="hybrid-grid">
+                <div class="hybrid-card">
+                    <div class="card-icon green">D</div>
+                    <h3>Deterministic Functions</h3>
+                    <p>Reliable, testable, and predictable operations for critical business logic.</p>
+                </div>
+                <div class="hybrid-card center">
+                    <h3>Hybrid Intelligence</h3>
+                    <p>AI generates deterministic functions. Deterministic functions guide AI. A continuous improvement loop.</p>
+                </div>
+                <div class="hybrid-card">
+                    <div class="card-icon purple">AI</div>
+                    <h3>AI Agents</h3>
+                    <p>Intelligent agents for complex reasoning, natural language, and adaptive tasks.</p>
+                </div>
+                <div class="hybrid-card">
+                    <div class="card-icon blue">S</div>
+                    <h3>Skills System</h3>
+                    <p>Composable skills that combine AI prompts, scripts, and MCP protocols.</p>
+                </div>
+                <div class="hybrid-card">
+                    <div class="card-icon orange">E</div>
+                    <h3>Extension Ecosystem</h3>
+                    <p>Extend capabilities with plugins for deployment, testing, and integrations.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2>Intelligent Task Execution</h2>
+                <p>Design workflows that leverage the right tool for each step</p>
+            </div>
+
+            <div class="feature-row">
+                <div class="feature-content">
+                    <h3>AI-Generated Determinism</h3>
+                    <p>Use AI to analyze patterns and generate optimized deterministic functions that can be tested, versioned, and deployed with confidence.</p>
+                    <ul class="feature-list">
+                        <li>Pattern recognition to function generation</li>
+                        <li>Automatic test case creation</li>
+                        <li>Performance optimization suggestions</li>
+                        <li>Code review and improvement</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="code-block">
+<span class="code-comment">// AI analyzes usage patterns...</span>
+<span class="code-keyword">const</span> <span class="code-variable">task</span> = <span class="code-keyword">await</span> <span class="code-function">analyze</span>({
+  <span class="code-string">"type"</span>: <span class="code-string">"data-transform"</span>,
+  <span class="code-string">"samples"</span>: <span class="code-variable">userInputs</span>
+});
+
+<span class="code-comment">// Generates deterministic function</span>
+<span class="code-keyword">function</span> <span class="code-function">transformData</span>(<span class="code-variable">input</span>) {
+  <span class="code-comment">// Reliable, testable logic</span>
+  <span class="code-keyword">return</span> <span class="code-variable">input</span>.<span class="code-function">map</span>(<span class="code-variable">fn</span>);
+}
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-row">
+                <div class="feature-content">
+                    <h3>Composable Skills</h3>
+                    <p>Build complex workflows from simple, reusable skills. Chain deterministic operations with AI decision points.</p>
+                    <ul class="feature-list">
+                        <li>YAML-based skill definitions</li>
+                        <li>AI-prompt, script, and MCP support</li>
+                        <li>Composite skill chaining</li>
+                        <li>Few-shot learning integration</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <div class="code-block">
+<span class="code-comment"># deploy-workflow.yml</span>
+<span class="code-keyword">name:</span> <span class="code-string">deploy-workflow</span>
+<span class="code-keyword">execution:</span>
+  <span class="code-keyword">type:</span> <span class="code-string">composite</span>
+  <span class="code-keyword">steps:</span>
+    - <span class="code-keyword">skill:</span> <span class="code-string">validate-code</span>    <span class="code-comment"># deterministic</span>
+    - <span class="code-keyword">skill:</span> <span class="code-string">ai-review</span>        <span class="code-comment"># AI agent</span>
+    - <span class="code-keyword">skill:</span> <span class="code-string">run-tests</span>       <span class="code-comment"># deterministic</span>
+    - <span class="code-keyword">skill:</span> <span class="code-string">deploy-servloci</span>  <span class="code-comment"># deterministic</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="task-types" id="tasks">
+        <div class="container">
+            <div class="section-header">
+                <h2>Task Design Patterns</h2>
+                <p>Carefully designed long and short tasks with hybrid intelligence</p>
+            </div>
+            <div class="task-grid">
+                <div class="task-card">
+                    <h4>Code Analysis <span class="duration">Short</span></h4>
+                    <p>Quick code review with AI insights and deterministic linting</p>
+                    <div class="task-tags">
+                        <span class="task-tag ai">AI Review</span>
+                        <span class="task-tag deterministic">ESLint</span>
+                        <span class="task-tag deterministic">TypeCheck</span>
+                    </div>
+                </div>
+                <div class="task-card">
+                    <h4>Full Deployment <span class="duration">Long</span></h4>
+                    <p>Complete CI/CD pipeline with intelligent error recovery</p>
+                    <div class="task-tags">
+                        <span class="task-tag deterministic">Build</span>
+                        <span class="task-tag deterministic">Test</span>
+                        <span class="task-tag ai">Error Analysis</span>
+                        <span class="task-tag deterministic">Deploy</span>
+                    </div>
+                </div>
+                <div class="task-card">
+                    <h4>Data Migration <span class="duration">Long</span></h4>
+                    <p>Structured data transformation with AI-assisted mapping</p>
+                    <div class="task-tags">
+                        <span class="task-tag ai">Schema Mapping</span>
+                        <span class="task-tag deterministic">Transform</span>
+                        <span class="task-tag deterministic">Validate</span>
+                    </div>
+                </div>
+                <div class="task-card">
+                    <h4>API Integration <span class="duration">Short</span></h4>
+                    <p>Connect services with generated type-safe wrappers</p>
+                    <div class="task-tags">
+                        <span class="task-tag ai">Spec Analysis</span>
+                        <span class="task-tag deterministic">Code Gen</span>
+                        <span class="task-tag deterministic">Type Check</span>
+                    </div>
+                </div>
+                <div class="task-card">
+                    <h4>Test Generation <span class="duration">Short</span></h4>
+                    <p>AI-generated test cases with deterministic execution</p>
+                    <div class="task-tags">
+                        <span class="task-tag ai">Test Design</span>
+                        <span class="task-tag deterministic">Jest/Mocha</span>
+                        <span class="task-tag deterministic">Coverage</span>
+                    </div>
+                </div>
+                <div class="task-card">
+                    <h4>Documentation <span class="duration">Long</span></h4>
+                    <p>Comprehensive docs from code analysis and AI writing</p>
+                    <div class="task-tags">
+                        <span class="task-tag deterministic">Parse AST</span>
+                        <span class="task-tag ai">Content Gen</span>
+                        <span class="task-tag deterministic">Format</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section" id="get-started">
+        <div class="container">
+            <h2>Ready to Build Smarter?</h2>
+            <p>Start creating hybrid intelligent workflows today</p>
+            <div class="hero-cta">
+                <a href="https://github.com/vikasavnish/agenticide" class="cta-btn">View on GitHub</a>
+                <a href="#docs" class="btn-secondary">Read Documentation</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p>Agenticide - Hybrid Intelligence Platform</p>
+                <div class="footer-links">
+                    <a href="https://github.com/vikasavnish/agenticide">GitHub</a>
+                    <a href="#docs">Documentation</a>
+                    <a href="mailto:contact@servloci.in">Contact</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

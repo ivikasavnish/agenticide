@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    volumes:
+      - ..:/workspace:cached
+      - devcontainer-node-modules:/workspace/agenticide-cli/node_modules
+      - devcontainer-core-node-modules:/workspace/agenticide-core/node_modules
+      - devcontainer-vscode-node-modules:/workspace/agenticide-vscode/node_modules
+      - devcontainer-cargo:/usr/local/cargo
+      - devcontainer-go:/go
+    
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+    
+    # Use host network for better performance
+    network_mode: host
+    
+    # Environment variables
+    environment:
+      - NODE_ENV=development
+      - AGENTICIDE_ENV=devcontainer
+      - CARGO_HOME=/usr/local/cargo
+      - GOPATH=/go
+    
+    # Security options
+    security_opt:
+      - seccomp:unconfined
+    
+    # Capabilities for better debugging
+    cap_add:
+      - SYS_PTRACE
+
+volumes:
+  devcontainer-node-modules:
+  devcontainer-core-node-modules:
+  devcontainer-vscode-node-modules:
+  devcontainer-cargo:
+  devcontainer-go:

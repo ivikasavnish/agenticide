@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Board</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <h1>🎯 Project Workflow</h1>
+        <div class="stats">
+            <span class="stat">
+                <span class="stat-value" id="total-tasks">0</span>
+                <span class="stat-label">Total Tasks</span>
+            </span>
+            <span class="stat">
+                <span class="stat-value" id="completed-tasks">0</span>
+                <span class="stat-label">Completed</span>
+            </span>
+        </div>
+    </div>
+    
+    <div class="workflow-container">
+        <div class="workflow-column" data-stage="todo">
+            <div class="column-header">
+                <h2>📋 To Do</h2>
+                <span class="task-count">0</span>
+            </div>
+            <div class="tasks-list" id="todo-list"></div>
+            <button class="add-task-btn" data-stage="todo">+ Add Task</button>
+        </div>
+        
+        <div class="workflow-column" data-stage="progress">
+            <div class="column-header">
+                <h2>⚡ In Progress</h2>
+                <span class="task-count">0</span>
+            </div>
+            <div class="tasks-list" id="progress-list"></div>
+            <button class="add-task-btn" data-stage="progress">+ Add Task</button>
+        </div>
+        
+        <div class="workflow-column" data-stage="review">
+            <div class="column-header">
+                <h2>👀 Review</h2>
+                <span class="task-count">0</span>
+            </div>
+            <div class="tasks-list" id="review-list"></div>
+            <button class="add-task-btn" data-stage="review">+ Add Task</button>
+        </div>
+        
+        <div class="workflow-column" data-stage="done">
+            <div class="column-header">
+                <h2>✅ Done</h2>
+                <span class="task-count">0</span>
+            </div>
+            <div class="tasks-list" id="done-list"></div>
+            <button class="add-task-btn" data-stage="done">+ Add Task</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="task-modal">
+        <div class="modal-content">
+            <h3>Create New Task</h3>
+            <input type="text" id="task-title" placeholder="Task title...">
+            <textarea id="task-description" placeholder="Description (optional)..."></textarea>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="cancel-btn">Cancel</button>
+                <button class="btn-create" id="create-btn">Create</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

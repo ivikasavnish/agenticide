@@ -106,6 +106,9 @@ class A2AProtocolExtension extends Extension {
     }
 
     async handleCommand(command, args, context) {
+        // Parse super keywords
+        context = this.parseSuperKeywords(args, context);
+        
         switch (command) {
             case 'a2a':
             case 'agents':
@@ -420,8 +423,8 @@ class A2AProtocolExtension extends Extension {
 
         this.eventBus.emit('collaboration:started', collaboration);
 
-        // Execute collaboration
-        const result = await this.executeCollaboration(collaboration);
+        // Execute collaboration (pass context for ultraloop)
+        const result = await this.executeCollaboration(collaboration, context);
 
         return result;
     }
@@ -456,40 +459,120 @@ class A2AProtocolExtension extends Extension {
         return phases.filter(p => p.agents.length > 0);
     }
 
-    async executeCollaboration(collaboration) {
+    async executeCollaboration(collaboration, context = {}) {
+        const useUltraloop = context.ultraloop || false;
+        
         console.log(chalk.yellow('\n🔄 Executing collaboration phases...\n'));
+        if (useUltraloop) {
+            console.log(chalk.magenta('⚡ ULTRALOOP mode enabled - retry until success\n'));
+        }
 
         const results = [];
+        const maxRetries = useUltraloop ? 10 : 1;
+        let currentPhaseIndex = 0;
 
-        for (const phase of collaboration.phases) {
-            console.log(chalk.cyan(`  Phase: ${phase.name}`));
-            console.log(chalk.dim(`  Agents: ${phase.agents.join(', ')}`));
-            
-            // Simulate phase execution
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            results.push({
-                phase: phase.name,
-                status: 'completed',
-                agents: phase.agents
-            });
-            
-            console.log(chalk.green(`  ✓ ${phase.name} completed\n`));
+        // Loop until all phases complete
+        while (currentPhaseIndex < collaboration.phases.length) {
+            const phase = collaboration.phases[currentPhaseIndex];
+            let attempts = 0;
+            let phaseCompleted = false;
+
+            // Retry phase until success or max retries
+            while (!phaseCompleted && attempts < maxRetries) {
+                attempts++;
+                
+                console.log(chalk.cyan(`\n  Phase ${currentPhaseIndex + 1}/${collaboration.phases.length}: ${phase.name}`));
+                console.log(chalk.dim(`  Agents: ${phase.agents.join(', ')}`));
+                console.log(chalk.dim(`  Attempt: ${attempts}/${maxRetries}`));
+                
+                try {
+                    // Execute phase tasks
+                    const phaseResult = await this.executePhase(phase, collaboration);
+                    
+                    if (phaseResult.success) {
+                        results.push({
+                            phase: phase.name,
+                            status: 'completed',
+                            agents: phase.agents,
+                            attempts,
+                            tasks: phaseResult.tasks
+                        });
+                        
+                        console.log(chalk.green(`  ✓ ${phase.name} completed (attempt ${attempts})\n`));
+                        phaseCompleted = true;
+                    } else {
+                        console.log(chalk.yellow(`  ⚠️  ${phase.name} needs retry: ${phaseResult.error}\n`));
+                    }
+                } catch (error) {
+                    console.log(chalk.red(`  ✗ Phase error: ${error.message}\n`));
+                }
+            }
+
+            if (!phaseCompleted) {
+                console.log(chalk.red(`  ❌ ${phase.name} failed after ${maxRetries} attempts\n`));
+                results.push({
+                    phase: phase.name,
+                    status: 'failed',
+                    agents: phase.agents,
+                    attempts: maxRetries,
+                    error: 'Max retries exceeded'
+                });
+                
+                // Continue to next phase anyway (or could break here)
+            }
+
+            currentPhaseIndex++;
         }
 
         collaboration.status = 'completed';
         collaboration.completed = Date.now();
         collaboration.results = results;
 
-        console.log(chalk.bold.green('✅ Collaboration completed successfully'));
+        const successfulPhases = results.filter(r => r.status === 'completed').length;
+        const failedPhases = results.filter(r => r.status === 'failed').length;
+
+        console.log(chalk.bold.green(`\n✅ Collaboration completed`));
+        console.log(chalk.dim(`   ${successfulPhases}/${collaboration.phases.length} phases successful`));
+        if (failedPhases > 0) {
+            console.log(chalk.yellow(`   ${failedPhases} phases failed`));
+        }
+        console.log();
 
         this.eventBus.emit('collaboration:completed', collaboration);
 
         return {
-            success: true,
+            success: successfulPhases === collaboration.phases.length,
             collaborationId: collaboration.id,
             duration: collaboration.completed - collaboration.started,
-            phases: results
+            phases: results,
+            completed: successfulPhases,
+            failed: failedPhases
+        };
+    }
+
+    async executePhase(phase, collaboration) {
+        // Execute all tasks in parallel within phase
+        const taskPromises = phase.tasks.map(async task => {
+            // Simulate task execution
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 80% success rate for simulation
+            const success = Math.random() > 0.2;
+            
+            return {
+                task,
+                status: success ? 'completed' : 'failed',
+                timestamp: Date.now()
+            };
+        });
+
+        const taskResults = await Promise.all(taskPromises);
+        const allSuccess = taskResults.every(t => t.status === 'completed');
+
+        return {
+            success: allSuccess,
+            tasks: taskResults,
+            error: allSuccess ? null : 'Some tasks failed'
         };
     }
 
@@ -806,6 +889,22 @@ class A2AProtocolExtension extends Extension {
     // Utilities
     generateMessageId() {
         return `msg-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+    }
+
+    parseSuperKeywords(args, context = {}) {
+        // Check for ultraloop keyword
+        if (args.includes('ultraloop') || args.includes('--ultraloop')) {
+            context.ultraloop = true;
+            console.log(chalk.magenta.bold('\n⚡ ULTRALOOP activated - will retry until success\n'));
+        }
+        
+        // Check for ultrathink keyword
+        if (args.includes('ultrathink') || args.includes('--ultrathink')) {
+            context.ultrathink = true;
+            console.log(chalk.magenta.bold('\n⚡ ULTRATHINK activated - extended planning\n'));
+        }
+        
+        return context;
     }
 
     generateCollaborationId() {

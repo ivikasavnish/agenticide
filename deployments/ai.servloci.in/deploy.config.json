@@ -1,0 +1,43 @@
+{
+  "name": "ai-servloci",
+  "description": "Agenticide Hybrid Intelligence Platform",
+  "server": "root@servloci",
+  "domains": [
+    "ai.servloci.in",
+    "ai.devtunnel.in"
+  ],
+  "deploy_path": "/var/www/ai-servloci",
+  "type": "static",
+  "ssl": true,
+  "features": {
+    "gzip": true,
+    "cache_static": true,
+    "spa_fallback": true,
+    "security_headers": true
+  },
+  "offering": {
+    "name": "Agenticide - Hybrid Intelligence",
+    "tagline": "Not Fully AI. Not Fully Manual. Best of Both Worlds.",
+    "core_concepts": [
+      "Deterministic Functions: Reliable, testable operations",
+      "AI Agents: Intelligent reasoning for complex tasks",
+      "Hybrid Tasks: Combining both for optimal results",
+      "AI-Generated Determinism: Use AI to create better deterministic code"
+    ],
+    "task_types": {
+      "short": [
+        "Code Analysis",
+        "API Integration",
+        "Test Generation",
+        "Quick Fixes"
+      ],
+      "long": [
+        "Full Deployment",
+        "Data Migration",
+        "Documentation",
+        "Refactoring"
+      ]
+    },
+    "value_proposition": "Use AI to generate more deterministic functions. Best of both worlds."
+  }
+}

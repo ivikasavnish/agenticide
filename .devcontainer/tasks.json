@@ -1,0 +1,100 @@
+# Tasks for VS Code in DevContainer
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install All Dependencies",
+      "type": "shell",
+      "command": "bash .devcontainer/post-create.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Test DevContainer Setup",
+      "type": "shell",
+      "command": "bash .devcontainer/test-container.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Build CLI",
+      "type": "shell",
+      "command": "cd agenticide-cli && npm install",
+      "problemMatcher": ["$eslint-compact"]
+    },
+    {
+      "label": "Build Core",
+      "type": "shell",
+      "command": "cd agenticide-core && npm install",
+      "problemMatcher": ["$eslint-compact"]
+    },
+    {
+      "label": "Build VSCode Extension",
+      "type": "shell",
+      "command": "cd agenticide-vscode && npm run compile",
+      "problemMatcher": ["$tsc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Watch VSCode Extension",
+      "type": "shell",
+      "command": "cd agenticide-vscode && npm run watch",
+      "problemMatcher": ["$tsc-watch"],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run All Tests",
+      "type": "shell",
+      "command": "node test-all-bug-fixes.js && node test-context-attachment.js",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Test Context Attachments",
+      "type": "shell",
+      "command": "node test-context-attachment.js",
+      "problemMatcher": []
+    },
+    {
+      "label": "Package VSCode Extension",
+      "type": "shell",
+      "command": "cd agenticide-vscode && npm run package",
+      "problemMatcher": [],
+      "dependsOn": ["Build VSCode Extension"]
+    },
+    {
+      "label": "Link CLI Globally",
+      "type": "shell",
+      "command": "cd agenticide-cli && npm link",
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean All",
+      "type": "shell",
+      "command": "rm -rf agenticide-cli/node_modules agenticide-core/node_modules agenticide-vscode/node_modules agenticide-vscode/out",
+      "problemMatcher": []
+    },
+    {
+      "label": "Rebuild Container",
+      "type": "shell",
+      "command": "echo 'Please use: Remote-Containers: Rebuild Container from Command Palette'",
+      "problemMatcher": []
+    }
+  ]
+}
