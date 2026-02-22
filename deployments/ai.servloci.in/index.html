@@ -4,44 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agenticide - Hybrid Intelligence Platform</title>
-    <meta name="description" content="Agenticide combines deterministic functions with AI agents for reliable, intelligent automation. Best of both worlds.">
+    <meta name="description" content="AI generates deterministic functions. Functions compose solid pipelines. Pipelines work for you. Not an API wrapper - a self-improving hybrid architecture.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #12121a;
-            --bg-card: #1a1a25;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0b0;
+            --bg-dark: #030712;
+            --bg-card: rgba(15, 23, 42, 0.6);
+            --border-subtle: rgba(148, 163, 184, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #22d3ee;
             --accent-blue: #3b82f6;
-            --accent-purple: #8b5cf6;
+            --accent-purple: #a855f7;
+            --accent-pink: #ec4899;
             --accent-green: #10b981;
             --accent-orange: #f59e0b;
-            --gradient-1: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            --gradient-2: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            --gradient-main: linear-gradient(135deg, #22d3ee 0%, #3b82f6 50%, #a855f7 100%);
+            --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ec4899 100%);
+            --gradient-cool: linear-gradient(135deg, #10b981 0%, #22d3ee 100%);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
+            font-family: 'Space Grotesk', -apple-system, sans-serif;
+            background: var(--bg-dark);
             color: var(--text-primary);
             line-height: 1.6;
             overflow-x: hidden;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
+        /* Animated Background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
         }
+
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-glow-1 { background: var(--accent-cyan); top: -200px; left: -200px; animation: float 20s infinite; }
+        .bg-glow-2 { background: var(--accent-purple); bottom: -200px; right: -200px; animation: float 25s infinite reverse; }
+        .bg-glow-3 { background: var(--accent-blue); top: 50%; left: 50%; transform: translate(-50%, -50%); animation: pulse 15s infinite; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(100px, 50px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.1; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.2; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
 
         /* Header */
         header {
@@ -51,402 +89,942 @@
             right: 0;
             z-index: 100;
             padding: 20px 0;
-            background: rgba(10, 10, 15, 0.8);
+            background: rgba(3, 7, 18, 0.8);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border-subtle);
         }
 
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        nav { display: flex; justify-content: space-between; align-items: center; }
 
         .logo {
             font-size: 1.5rem;
             font-weight: 700;
-            background: var(--gradient-1);
+            background: var(--gradient-main);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            letter-spacing: -0.5px;
         }
 
-        .nav-links {
-            display: flex;
-            gap: 32px;
-            list-style: none;
-        }
+        .nav-links { display: flex; gap: 40px; list-style: none; }
+        .nav-links a { color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 0.95rem; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--text-primary); }
 
-        .nav-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-
-        .nav-links a:hover {
-            color: var(--text-primary);
-        }
-
-        .cta-btn {
-            background: var(--gradient-1);
+        .btn-primary {
+            background: var(--gradient-main);
             color: white;
-            padding: 12px 24px;
+            padding: 12px 28px;
             border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
+            font-size: 0.95rem;
             transition: transform 0.2s, box-shadow 0.2s;
+            border: none;
+            cursor: pointer;
         }
 
-        .cta-btn:hover {
+        .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
-        }
-
-        /* Hero */
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding-top: 80px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 800px;
-            height: 800px;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 60%);
-            pointer-events: none;
-        }
-
-        .hero-content {
-            text-align: center;
-            max-width: 900px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-
-        .hero-badge {
-            display: inline-block;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            color: var(--accent-blue);
-            margin-bottom: 24px;
-        }
-
-        .hero h1 {
-            font-size: clamp(2.5rem, 6vw, 4rem);
-            font-weight: 700;
-            line-height: 1.1;
-            margin-bottom: 24px;
-        }
-
-        .hero h1 span {
-            background: var(--gradient-1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .hero p {
-            font-size: 1.25rem;
-            color: var(--text-secondary);
-            max-width: 700px;
-            margin: 0 auto 40px;
-        }
-
-        .hero-cta {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            flex-wrap: wrap;
+            box-shadow: 0 20px 40px rgba(34, 211, 238, 0.2);
         }
 
         .btn-secondary {
             background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 12px 24px;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 12px 28px;
             border-radius: 8px;
             text-decoration: none;
             font-weight: 600;
-            transition: background 0.2s, border-color 0.2s;
+            font-size: 0.95rem;
+            transition: all 0.2s;
         }
 
         .btn-secondary:hover {
             background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.3);
+            border-color: var(--accent-cyan);
         }
 
-        /* Hybrid Section */
-        .hybrid-section {
-            padding: 120px 0;
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 100px;
             position: relative;
         }
 
-        .section-header {
-            text-align: center;
-            margin-bottom: 64px;
-        }
-
-        .section-header h2 {
-            font-size: 2.5rem;
-            margin-bottom: 16px;
-        }
-
-        .section-header p {
-            color: var(--text-secondary);
-            font-size: 1.125rem;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .hybrid-grid {
+        .hero-content {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            letter-spacing: -1px;
+        }
+
+        .hero-text h1 .gradient {
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-text .tagline {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .hero-text .description {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            max-width: 500px;
+        }
+
+        .hero-cta { display: flex; gap: 16px; }
+
+        /* Pipeline Visualization */
+        .pipeline-visual {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 40px;
+            backdrop-filter: blur(20px);
+        }
+
+        .pipeline-flow {
+            display: flex;
+            flex-direction: column;
             gap: 24px;
         }
 
-        @media (max-width: 900px) {
-            .hybrid-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .hybrid-card {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: transform 0.2s, border-color 0.2s;
-        }
-
-        .hybrid-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .hybrid-card.center {
-            background: var(--gradient-1);
-            border: none;
-            grid-row: span 2;
+        .pipeline-step {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
         }
 
-        .card-icon {
+        .pipeline-step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--step-color);
+        }
+
+        .pipeline-step:hover {
+            border-color: var(--step-color);
+            transform: translateX(8px);
+        }
+
+        .pipeline-step.active {
+            animation: stepPulse 2s infinite;
+        }
+
+        @keyframes stepPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.3); }
+            50% { box-shadow: 0 0 20px 5px rgba(34, 211, 238, 0.1); }
+        }
+
+        .step-icon {
             width: 48px;
             height: 48px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-        }
-
-        .card-icon.blue { background: rgba(59, 130, 246, 0.2); }
-        .card-icon.green { background: rgba(16, 185, 129, 0.2); }
-        .card-icon.orange { background: rgba(245, 158, 11, 0.2); }
-        .card-icon.purple { background: rgba(139, 92, 246, 0.2); }
-
-        .hybrid-card h3 {
             font-size: 1.25rem;
-            margin-bottom: 12px;
+            font-weight: 700;
+            background: var(--step-color);
+            color: var(--bg-dark);
+            flex-shrink: 0;
         }
 
-        .hybrid-card p {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
+        .step-content h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
         }
 
-        .hybrid-card.center p {
-            color: rgba(255, 255, 255, 0.9);
+        .step-content p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
         }
 
-        /* Features */
-        .features {
-            padding: 120px 0;
-            background: var(--bg-secondary);
+        .step-arrow {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            animation: bounce 1s infinite;
         }
 
-        .feature-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 80px;
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(4px); }
+        }
+
+        /* Core Concept Section */
+        .core-concept {
+            padding: 160px 0;
+            position: relative;
+        }
+
+        .section-label {
+            display: inline-flex;
             align-items: center;
-            margin-bottom: 80px;
-        }
-
-        @media (max-width: 900px) {
-            .feature-row {
-                grid-template-columns: 1fr;
-                gap: 40px;
-            }
-        }
-
-        .feature-row:nth-child(even) .feature-content {
-            order: 2;
-        }
-
-        .feature-row:nth-child(even) .feature-visual {
-            order: 1;
-        }
-
-        @media (max-width: 900px) {
-            .feature-row:nth-child(even) .feature-content,
-            .feature-row:nth-child(even) .feature-visual {
-                order: unset;
-            }
-        }
-
-        .feature-content h3 {
-            font-size: 2rem;
+            gap: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
             margin-bottom: 16px;
         }
 
-        .feature-content p {
-            color: var(--text-secondary);
+        .section-label::before {
+            content: '';
+            width: 24px;
+            height: 2px;
+            background: var(--accent-cyan);
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
             margin-bottom: 24px;
+            letter-spacing: -0.5px;
         }
 
-        .feature-list {
-            list-style: none;
-        }
-
-        .feature-list li {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 12px;
+        .section-description {
+            font-size: 1.125rem;
             color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 64px;
         }
 
-        .feature-list li::before {
-            content: ">";
-            color: var(--accent-green);
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: bold;
-        }
-
-        .feature-visual {
+        /* Improvement Loop */
+        .improvement-loop {
             background: var(--bg-card);
-            border-radius: 16px;
-            padding: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            border-radius: 32px;
+            padding: 60px;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
         }
 
-        .code-block {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.875rem;
-            background: var(--bg-primary);
-            padding: 20px;
-            border-radius: 8px;
-            overflow-x: auto;
-        }
-
-        .code-comment { color: #6b7280; }
-        .code-keyword { color: #c084fc; }
-        .code-function { color: #60a5fa; }
-        .code-string { color: #34d399; }
-        .code-variable { color: #f472b6; }
-
-        /* Task Types */
-        .task-types {
-            padding: 120px 0;
-        }
-
-        .task-grid {
+        .loop-container {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px;
+            position: relative;
+        }
+
+        .loop-step {
+            text-align: center;
+            padding: 32px 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            border: 1px solid var(--border-subtle);
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .loop-step:hover {
+            transform: translateY(-8px);
+            border-color: var(--step-color);
+        }
+
+        .loop-step::after {
+            content: '>';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .loop-step:last-child::after { display: none; }
+
+        .loop-icon {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 20px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            background: var(--step-color);
+            color: var(--bg-dark);
+        }
+
+        .loop-step h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .loop-step p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .loop-arrow {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent-cyan);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .loop-arrow svg {
+            animation: loopRotate 3s linear infinite;
+        }
+
+        @keyframes loopRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Use Cases */
+        .use-cases {
+            padding: 160px 0;
+        }
+
+        .use-case-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 24px;
         }
 
-        @media (max-width: 768px) {
-            .task-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .task-card {
+        .use-case-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
             padding: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
         }
 
-        .task-card h4 {
-            font-size: 1.125rem;
-            margin-bottom: 8px;
+        .use-case-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--card-gradient);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .use-case-card:hover {
+            transform: translateY(-8px);
+            border-color: transparent;
+        }
+
+        .use-case-card:hover::before { opacity: 1; }
+
+        .use-case-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            background: var(--card-bg);
+        }
+
+        .use-case-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .use-case-card .description {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 24px;
+        }
+
+        .pipeline-preview {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .pipeline-preview .line {
             display: flex;
             align-items: center;
             gap: 8px;
+            padding: 4px 0;
         }
 
-        .task-card .duration {
-            font-size: 0.75rem;
-            padding: 4px 8px;
+        .pipeline-preview .tag {
+            padding: 2px 8px;
             border-radius: 4px;
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--accent-blue);
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
         }
 
-        .task-card p {
+        .tag-ai { background: rgba(168, 85, 247, 0.2); color: var(--accent-purple); }
+        .tag-det { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .tag-pipe { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+
+        /* Not a Wrapper Section */
+        .not-wrapper {
+            padding: 160px 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(34, 211, 238, 0.02) 50%, transparent 100%);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr;
+            gap: 40px;
+            align-items: stretch;
+        }
+
+        .comparison-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 40px;
+            backdrop-filter: blur(20px);
+        }
+
+        .comparison-card.bad {
+            opacity: 0.7;
+        }
+
+        .comparison-card.good {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 60px rgba(34, 211, 238, 0.1);
+        }
+
+        .comparison-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .comparison-card h3 .icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .comparison-card.bad h3 .icon { background: rgba(239, 68, 68, 0.2); }
+        .comparison-card.good h3 .icon { background: rgba(34, 211, 238, 0.2); }
+
+        .comparison-list {
+            list-style: none;
+        }
+
+        .comparison-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.95rem;
             color: var(--text-secondary);
-            font-size: 0.875rem;
+        }
+
+        .comparison-list li:last-child { border-bottom: none; }
+
+        .comparison-list li::before {
+            content: var(--list-icon);
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .comparison-card.bad .comparison-list li::before { content: ''; color: #ef4444; }
+        .comparison-card.good .comparison-list li::before { content: '>'; color: var(--accent-cyan); }
+
+        .vs-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+
+        /* Warning Section */
+        .warning-section {
+            padding: 160px 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(239, 68, 68, 0.03) 50%, transparent 100%);
+        }
+
+        .warning-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 24px;
+        }
+
+        .warning-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 32px;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s;
+        }
+
+        .warning-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .warning-card.main {
+            grid-row: span 2;
+            border-color: rgba(239, 68, 68, 0.3);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        }
+
+        .warning-card.solution {
+            grid-column: span 2;
+            border-color: rgba(16, 185, 129, 0.3);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(34, 211, 238, 0.05) 100%);
+        }
+
+        .warning-icon, .break-icon, .lock-icon, .solution-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .warning-icon {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .break-icon {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-orange);
+        }
+
+        .lock-icon {
+            background: rgba(168, 85, 247, 0.2);
+            color: var(--accent-purple);
+        }
+
+        .solution-icon {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+        }
+
+        .warning-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
             margin-bottom: 16px;
         }
 
-        .task-tags {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+        .warning-card h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 12px;
         }
 
-        .task-tag {
-            font-size: 0.75rem;
-            padding: 4px 10px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.05);
+        .warning-card p {
             color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 16px;
         }
 
-        .task-tag.ai { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
-        .task-tag.deterministic { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .warning-card strong {
+            color: var(--text-primary);
+        }
+
+        .warning-stat {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ef4444;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+        }
+
+        .timeline-item {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .timeline-item:not(:last-child)::after {
+            content: '-->';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .timeline-item .time {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .timeline-item .event {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .timeline-item.past .event { color: var(--text-secondary); }
+        .timeline-item.now .event { color: var(--accent-orange); }
+        .timeline-item.future .event { color: #ef4444; }
+
+        .break-list {
+            list-style: none;
+            margin-top: 12px;
+        }
+
+        .break-list li {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            padding: 6px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .break-list li::before {
+            content: 'X';
+            position: absolute;
+            left: 0;
+            color: #ef4444;
+            font-size: 0.75rem;
+        }
+
+        .solution-benefits {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .benefit {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 1024px) {
+            .warning-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .warning-card.main {
+                grid-column: span 2;
+                grid-row: span 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .warning-grid {
+                grid-template-columns: 1fr;
+            }
+            .warning-card.main,
+            .warning-card.solution {
+                grid-column: span 1;
+            }
+        }
+
+        /* Live Architecture */
+        .architecture {
+            padding: 160px 0;
+        }
+
+        .arch-visual {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 32px;
+            padding: 60px;
+            backdrop-filter: blur(20px);
+        }
+
+        .arch-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 48px;
+        }
+
+        .arch-node {
+            flex: 1;
+            text-align: center;
+            padding: 32px 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            border: 2px solid var(--border-subtle);
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .arch-node:hover {
+            border-color: var(--node-color);
+            transform: scale(1.02);
+        }
+
+        .arch-node.active {
+            border-color: var(--node-color);
+            animation: nodeGlow 2s infinite;
+        }
+
+        @keyframes nodeGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(var(--node-rgb), 0.2); }
+            50% { box-shadow: 0 0 40px rgba(var(--node-rgb), 0.4); }
+        }
+
+        .node-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            background: var(--node-color);
+            color: var(--bg-dark);
+        }
+
+        .arch-node h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .arch-node p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .arch-connector {
+            font-size: 2rem;
+            color: var(--text-muted);
+            animation: flowRight 1s infinite;
+        }
+
+        @keyframes flowRight {
+            0%, 100% { opacity: 0.3; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(8px); }
+        }
+
+        .arch-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* Code Example */
+        .code-section {
+            padding: 160px 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(168, 85, 247, 0.02) 50%, transparent 100%);
+        }
+
+        .code-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .code-dot.red { background: #ef4444; }
+        .code-dot.yellow { background: #f59e0b; }
+        .code-dot.green { background: #10b981; }
+
+        .code-title {
+            margin-left: 12px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .code-content {
+            padding: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .code-content .comment { color: #6b7280; }
+        .code-content .keyword { color: #c084fc; }
+        .code-content .function { color: #22d3ee; }
+        .code-content .string { color: #34d399; }
+        .code-content .variable { color: #f472b6; }
+        .code-content .number { color: #fb923c; }
 
         /* CTA Section */
         .cta-section {
-            padding: 120px 0;
+            padding: 160px 0;
             text-align: center;
-            background: var(--bg-secondary);
         }
 
-        .cta-section h2 {
+        .cta-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 32px;
+            padding: 80px;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-main);
+        }
+
+        .cta-box h2 {
             font-size: 2.5rem;
+            font-weight: 700;
             margin-bottom: 16px;
         }
 
-        .cta-section p {
-            color: var(--text-secondary);
+        .cta-box p {
             font-size: 1.125rem;
-            margin-bottom: 32px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
         }
 
         /* Footer */
         footer {
-            padding: 48px 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 60px 0;
+            border-top: 1px solid var(--border-subtle);
         }
 
         .footer-content {
@@ -456,231 +1034,470 @@
         }
 
         .footer-content p {
-            color: var(--text-secondary);
+            color: var(--text-muted);
             font-size: 0.875rem;
         }
 
         .footer-links {
             display: flex;
-            gap: 24px;
+            gap: 32px;
         }
 
         .footer-links a {
-            color: var(--text-secondary);
+            color: var(--text-muted);
             text-decoration: none;
             font-size: 0.875rem;
             transition: color 0.2s;
         }
 
-        .footer-links a:hover {
-            color: var(--text-primary);
+        .footer-links a:hover { color: var(--text-primary); }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-content { grid-template-columns: 1fr; gap: 60px; }
+            .loop-container { grid-template-columns: repeat(2, 1fr); }
+            .loop-step::after { display: none; }
+            .use-case-grid { grid-template-columns: repeat(2, 1fr); }
+            .comparison-grid { grid-template-columns: 1fr; }
+            .vs-badge { padding: 20px 0; }
+            .arch-flow { flex-wrap: wrap; }
+            .arch-connector { display: none; }
+            .code-container { grid-template-columns: 1fr; }
         }
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             .nav-links { display: none; }
-            .footer-content { flex-direction: column; gap: 16px; }
+            .loop-container { grid-template-columns: 1fr; }
+            .use-case-grid { grid-template-columns: 1fr; }
+            .arch-metrics { grid-template-columns: repeat(2, 1fr); }
+            .cta-box { padding: 48px 24px; }
+            .footer-content { flex-direction: column; gap: 24px; text-align: center; }
         }
     </style>
 </head>
 <body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+
     <header>
         <nav class="container">
             <div class="logo">agenticide</div>
             <ul class="nav-links">
-                <li><a href="#hybrid">Hybrid AI</a></li>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#tasks">Task Types</a></li>
+                <li><a href="#concept">How It Works</a></li>
+                <li><a href="#use-cases">Use Cases</a></li>
+                <li><a href="#future-proof">Why Now</a></li>
                 <li><a href="https://github.com/vikasavnish/agenticide">GitHub</a></li>
             </ul>
-            <a href="#get-started" class="cta-btn">Get Started</a>
+            <a href="#start" class="btn-primary">Get Started</a>
         </nav>
     </header>
 
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <div class="hero-badge">Hybrid Intelligence Platform</div>
-                <h1>Not Fully AI.<br>Not Fully Manual.<br><span>Best of Both Worlds.</span></h1>
-                <p>Agenticide combines deterministic functions with AI agents for reliable, intelligent automation. Use AI to generate more deterministic functions.</p>
-                <div class="hero-cta">
-                    <a href="#get-started" class="cta-btn">Start Building</a>
-                    <a href="#learn-more" class="btn-secondary">Learn More</a>
+                <div class="hero-text">
+                    <h1>AI Creates.<br>Functions Execute.<br><span class="gradient">Pipelines Deliver.</span></h1>
+                    <p class="tagline">Not an API wrapper. A self-improving hybrid architecture.</p>
+                    <p class="description">AI translates intent into deterministic functions. Functions compose into solid pipelines. Pipelines work for you - reliably, repeatedly, affordably.</p>
+                    <div class="hero-cta">
+                        <a href="#start" class="btn-primary">Start Building</a>
+                        <a href="#concept" class="btn-secondary">See How It Works</a>
+                    </div>
+                </div>
+                <div class="pipeline-visual">
+                    <div class="pipeline-flow">
+                        <div class="pipeline-step active" style="--step-color: var(--accent-purple)">
+                            <div class="step-icon">AI</div>
+                            <div class="step-content">
+                                <h4>AI Analyzes Intent</h4>
+                                <p>"Monitor competitor prices and alert on changes"</p>
+                            </div>
+                        </div>
+                        <div class="step-arrow">|</div>
+                        <div class="pipeline-step" style="--step-color: var(--accent-cyan)">
+                            <div class="step-icon">fn</div>
+                            <div class="step-content">
+                                <h4>Generates Functions</h4>
+                                <p>scrapePrice() - parseData() - comparePrice()</p>
+                            </div>
+                        </div>
+                        <div class="step-arrow">|</div>
+                        <div class="pipeline-step" style="--step-color: var(--accent-blue)">
+                            <div class="step-icon">[ ]</div>
+                            <div class="step-content">
+                                <h4>Composes Pipeline</h4>
+                                <p>Scheduled, tested, monitored execution</p>
+                            </div>
+                        </div>
+                        <div class="step-arrow">|</div>
+                        <div class="pipeline-step" style="--step-color: var(--accent-green)">
+                            <div class="step-icon">></div>
+                            <div class="step-content">
+                                <h4>Works For You</h4>
+                                <p>24/7 autonomous operation, no AI costs</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="hybrid-section" id="hybrid">
+    <section class="core-concept" id="concept">
         <div class="container">
-            <div class="section-header">
-                <h2>Hybrid Intelligence Architecture</h2>
-                <p>The perfect balance between predictable deterministic logic and adaptive AI capabilities</p>
-            </div>
-            <div class="hybrid-grid">
-                <div class="hybrid-card">
-                    <div class="card-icon green">D</div>
-                    <h3>Deterministic Functions</h3>
-                    <p>Reliable, testable, and predictable operations for critical business logic.</p>
+            <span class="section-label">The Improvement Loop</span>
+            <h2 class="section-title">AI That Makes Itself Obsolete</h2>
+            <p class="section-description">Use AI once to generate deterministic functions. Those functions run forever without AI costs. When patterns change, AI improves them.</p>
+
+            <div class="improvement-loop">
+                <div class="loop-container">
+                    <div class="loop-step" style="--step-color: var(--accent-purple)">
+                        <div class="loop-icon">?</div>
+                        <h4>Describe Intent</h4>
+                        <p>Tell AI what you want to achieve in natural language</p>
+                    </div>
+                    <div class="loop-step" style="--step-color: var(--accent-cyan)">
+                        <div class="loop-icon">{ }</div>
+                        <h4>AI Generates Code</h4>
+                        <p>Creates optimized, testable deterministic functions</p>
+                    </div>
+                    <div class="loop-step" style="--step-color: var(--accent-blue)">
+                        <div class="loop-icon">|||</div>
+                        <h4>Pipeline Executes</h4>
+                        <p>Functions run reliably without AI involvement</p>
+                    </div>
+                    <div class="loop-step" style="--step-color: var(--accent-green)">
+                        <div class="loop-icon">^</div>
+                        <h4>AI Improves</h4>
+                        <p>Monitors results, generates better functions when needed</p>
+                    </div>
                 </div>
-                <div class="hybrid-card center">
-                    <h3>Hybrid Intelligence</h3>
-                    <p>AI generates deterministic functions. Deterministic functions guide AI. A continuous improvement loop.</p>
-                </div>
-                <div class="hybrid-card">
-                    <div class="card-icon purple">AI</div>
-                    <h3>AI Agents</h3>
-                    <p>Intelligent agents for complex reasoning, natural language, and adaptive tasks.</p>
-                </div>
-                <div class="hybrid-card">
-                    <div class="card-icon blue">S</div>
-                    <h3>Skills System</h3>
-                    <p>Composable skills that combine AI prompts, scripts, and MCP protocols.</p>
-                </div>
-                <div class="hybrid-card">
-                    <div class="card-icon orange">E</div>
-                    <h3>Extension Ecosystem</h3>
-                    <p>Extend capabilities with plugins for deployment, testing, and integrations.</p>
+                <div class="loop-arrow">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                        <polyline points="21 3 21 9 15 9"/>
+                    </svg>
+                    Continuous Improvement Loop
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="features" id="features">
+    <section class="use-cases" id="use-cases">
         <div class="container">
-            <div class="section-header">
-                <h2>Intelligent Task Execution</h2>
-                <p>Design workflows that leverage the right tool for each step</p>
-            </div>
+            <span class="section-label">Real Applications</span>
+            <h2 class="section-title">Pipelines That Actually Work</h2>
+            <p class="section-description">Not demos. Production systems running 24/7 with hybrid intelligence.</p>
 
-            <div class="feature-row">
-                <div class="feature-content">
-                    <h3>AI-Generated Determinism</h3>
-                    <p>Use AI to analyze patterns and generate optimized deterministic functions that can be tested, versioned, and deployed with confidence.</p>
-                    <ul class="feature-list">
-                        <li>Pattern recognition to function generation</li>
-                        <li>Automatic test case creation</li>
-                        <li>Performance optimization suggestions</li>
-                        <li>Code review and improvement</li>
+            <div class="use-case-grid">
+                <div class="use-case-card" style="--card-gradient: linear-gradient(90deg, #f59e0b, #ec4899); --card-bg: rgba(245, 158, 11, 0.1)">
+                    <div class="use-case-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-orange)">$</div>
+                    <h3>E-Commerce Operations</h3>
+                    <p class="description">Inventory sync, price optimization, order routing - all automated with deterministic reliability.</p>
+                    <div class="pipeline-preview">
+                        <div class="line"><span class="tag tag-ai">AI</span> Analyze sales patterns</div>
+                        <div class="line"><span class="tag tag-det">DET</span> adjustPrice(sku, demand)</div>
+                        <div class="line"><span class="tag tag-det">DET</span> syncInventory(warehouse[])</div>
+                        <div class="line"><span class="tag tag-pipe">PIPE</span> Run every 15 minutes</div>
+                    </div>
+                </div>
+
+                <div class="use-case-card" style="--card-gradient: linear-gradient(90deg, #3b82f6, #8b5cf6); --card-bg: rgba(59, 130, 246, 0.1)">
+                    <div class="use-case-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--accent-blue)">/\</div>
+                    <h3>Price Intelligence</h3>
+                    <p class="description">Monitor competitors, track trends, alert on opportunities - without per-request AI costs.</p>
+                    <div class="pipeline-preview">
+                        <div class="line"><span class="tag tag-ai">AI</span> Design scraping strategy</div>
+                        <div class="line"><span class="tag tag-det">DET</span> scrapeCompetitor(url)</div>
+                        <div class="line"><span class="tag tag-det">DET</span> detectPriceChange()</div>
+                        <div class="line"><span class="tag tag-det">DET</span> sendAlert(slack, email)</div>
+                    </div>
+                </div>
+
+                <div class="use-case-card" style="--card-gradient: linear-gradient(90deg, #10b981, #22d3ee); --card-bg: rgba(16, 185, 129, 0.1)">
+                    <div class="use-case-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-green)">@</div>
+                    <h3>User Analytics</h3>
+                    <p class="description">Track behavior, segment users, trigger actions - deterministic execution at scale.</p>
+                    <div class="pipeline-preview">
+                        <div class="line"><span class="tag tag-ai">AI</span> Define user segments</div>
+                        <div class="line"><span class="tag tag-det">DET</span> trackEvent(userId, action)</div>
+                        <div class="line"><span class="tag tag-det">DET</span> computeSegment(user)</div>
+                        <div class="line"><span class="tag tag-det">DET</span> triggerCampaign(segment)</div>
+                    </div>
+                </div>
+
+                <div class="use-case-card" style="--card-gradient: linear-gradient(90deg, #ec4899, #a855f7); --card-bg: rgba(236, 72, 153, 0.1)">
+                    <div class="use-case-icon" style="background: rgba(236, 72, 153, 0.15); color: var(--accent-pink)">^</div>
+                    <h3>Trading Systems</h3>
+                    <p class="description">AI designs strategies, deterministic code executes them with microsecond precision.</p>
+                    <div class="pipeline-preview">
+                        <div class="line"><span class="tag tag-ai">AI</span> Backtest strategy ideas</div>
+                        <div class="line"><span class="tag tag-det">DET</span> calculateSignal(candles)</div>
+                        <div class="line"><span class="tag tag-det">DET</span> executeOrder(signal)</div>
+                        <div class="line"><span class="tag tag-det">DET</span> manageRisk(position)</div>
+                    </div>
+                </div>
+
+                <div class="use-case-card" style="--card-gradient: linear-gradient(90deg, #22d3ee, #3b82f6); --card-bg: rgba(34, 211, 238, 0.1)">
+                    <div class="use-case-icon" style="background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan)">!</div>
+                    <h3>Training & Education</h3>
+                    <p class="description">AI creates curriculum, deterministic systems deliver it consistently to thousands.</p>
+                    <div class="pipeline-preview">
+                        <div class="line"><span class="tag tag-ai">AI</span> Generate course content</div>
+                        <div class="line"><span class="tag tag-det">DET</span> assessProgress(student)</div>
+                        <div class="line"><span class="tag tag-det">DET</span> selectNextModule()</div>
+                        <div class="line"><span class="tag tag-det">DET</span> issueCredential()</div>
+                    </div>
+                </div>
+
+                <div class="use-case-card" style="--card-gradient: linear-gradient(90deg, #a855f7, #ec4899); --card-bg: rgba(168, 85, 247, 0.1)">
+                    <div class="use-case-icon" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple)">></div>
+                    <h3>Deployment Pipelines</h3>
+                    <p class="description">Repeatable, tested deployments. AI handles the complex decisions, functions do the work.</p>
+                    <div class="pipeline-preview">
+                        <div class="line"><span class="tag tag-ai">AI</span> Review PR for risks</div>
+                        <div class="line"><span class="tag tag-det">DET</span> runTests(suite)</div>
+                        <div class="line"><span class="tag tag-det">DET</span> buildArtifact()</div>
+                        <div class="line"><span class="tag tag-det">DET</span> deploy(server, version)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="not-wrapper">
+        <div class="container">
+            <span class="section-label">The Difference</span>
+            <h2 class="section-title">Not Another AI Wrapper</h2>
+            <p class="section-description">Most "AI tools" just proxy expensive API calls. We use AI to build systems that run without it.</p>
+
+            <div class="comparison-grid">
+                <div class="comparison-card bad">
+                    <h3><span class="icon">X</span> Typical AI Wrappers</h3>
+                    <ul class="comparison-list">
+                        <li>Every request hits expensive AI APIs</li>
+                        <li>Unpredictable costs that scale with usage</li>
+                        <li>Inconsistent outputs, hard to test</li>
+                        <li>Latency on every operation</li>
+                        <li>Dependent on external AI availability</li>
+                        <li>Black box - can't audit or verify</li>
                     </ul>
                 </div>
-                <div class="feature-visual">
-                    <div class="code-block">
-<span class="code-comment">// AI analyzes usage patterns...</span>
-<span class="code-keyword">const</span> <span class="code-variable">task</span> = <span class="code-keyword">await</span> <span class="code-function">analyze</span>({
-  <span class="code-string">"type"</span>: <span class="code-string">"data-transform"</span>,
-  <span class="code-string">"samples"</span>: <span class="code-variable">userInputs</span>
+
+                <div class="vs-badge">VS</div>
+
+                <div class="comparison-card good">
+                    <h3><span class="icon">></span> Hybrid Intelligence</h3>
+                    <ul class="comparison-list">
+                        <li>AI runs once, functions run forever</li>
+                        <li>Fixed costs - deterministic execution is cheap</li>
+                        <li>Testable, versioned, reproducible code</li>
+                        <li>Microsecond execution, no API calls</li>
+                        <li>Runs independently after generation</li>
+                        <li>Full visibility into every operation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="warning-section" id="future-proof">
+        <div class="container">
+            <span class="section-label">The Hidden Risk</span>
+            <h2 class="section-title">AI Providers Are Selling at a Loss</h2>
+            <p class="section-description">Today's cheap AI APIs are a trap. Build your future on foundations you control.</p>
+
+            <div class="warning-grid">
+                <div class="warning-card main">
+                    <div class="warning-icon">!</div>
+                    <h3>The Adoption Play</h3>
+                    <p>AI providers are <strong>losing money on every request</strong> to drive adoption. OpenAI, Anthropic, Google - all subsidizing usage to build habits and lock-in. This is the classic tech playbook: grow first, monetize later.</p>
+                    <div class="warning-stat">
+                        <span class="stat-value">$5B+</span>
+                        <span class="stat-label">Annual losses across major AI providers</span>
+                    </div>
+                </div>
+
+                <div class="warning-card">
+                    <div class="timeline">
+                        <div class="timeline-item past">
+                            <span class="time">2023</span>
+                            <span class="event">GPT-4: $0.03/1K tokens</span>
+                        </div>
+                        <div class="timeline-item now">
+                            <span class="time">Now</span>
+                            <span class="event">Subsidized pricing</span>
+                        </div>
+                        <div class="timeline-item future">
+                            <span class="time">Soon</span>
+                            <span class="event">3-10x price increase?</span>
+                        </div>
+                    </div>
+                    <h4>Price Increases Are Coming</h4>
+                    <p>Once adoption is locked in, prices will rise sharply. Your pipeline costs could 10x overnight.</p>
+                </div>
+
+                <div class="warning-card">
+                    <div class="break-icon">X</div>
+                    <h4>APIs Will Break</h4>
+                    <p>Model versions deprecate. Endpoints change. Rate limits tighten. Your production system shouldn't depend on external API stability.</p>
+                    <ul class="break-list">
+                        <li>Model deprecation with 6-month notice</li>
+                        <li>Output format changes without warning</li>
+                        <li>Rate limits during peak demand</li>
+                        <li>Regional availability restrictions</li>
+                    </ul>
+                </div>
+
+                <div class="warning-card">
+                    <div class="lock-icon">#</div>
+                    <h4>Vendor Lock-In</h4>
+                    <p>The deeper you integrate, the harder it is to leave. When prices rise, you'll have no choice but to pay - or rewrite everything.</p>
+                </div>
+
+                <div class="warning-card solution">
+                    <div class="solution-icon">></div>
+                    <h3>The Hybrid Solution</h3>
+                    <p>Use AI <strong>once</strong> to generate deterministic code. That code runs forever on your infrastructure. When AI prices rise, your pipelines keep running at the same cost.</p>
+                    <div class="solution-benefits">
+                        <span class="benefit">No per-request costs</span>
+                        <span class="benefit">No API dependency</span>
+                        <span class="benefit">No vendor lock-in</span>
+                        <span class="benefit">Future-proof</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="architecture" id="architecture">
+        <div class="container">
+            <span class="section-label">How It Works</span>
+            <h2 class="section-title">The Hybrid Architecture</h2>
+            <p class="section-description">AI and deterministic systems working together, each doing what they do best.</p>
+
+            <div class="arch-visual">
+                <div class="arch-flow">
+                    <div class="arch-node" style="--node-color: var(--accent-purple); --node-rgb: 168, 85, 247">
+                        <div class="node-icon">AI</div>
+                        <h4>AI Layer</h4>
+                        <p>Intent understanding, code generation, optimization</p>
+                    </div>
+                    <div class="arch-connector">--></div>
+                    <div class="arch-node" style="--node-color: var(--accent-cyan); --node-rgb: 34, 211, 238">
+                        <div class="node-icon">fn</div>
+                        <h4>Function Layer</h4>
+                        <p>Generated deterministic functions, tested & versioned</p>
+                    </div>
+                    <div class="arch-connector">--></div>
+                    <div class="arch-node" style="--node-color: var(--accent-blue); --node-rgb: 59, 130, 246">
+                        <div class="node-icon">|||</div>
+                        <h4>Pipeline Layer</h4>
+                        <p>Orchestration, scheduling, monitoring, alerting</p>
+                    </div>
+                    <div class="arch-connector">--></div>
+                    <div class="arch-node active" style="--node-color: var(--accent-green); --node-rgb: 16, 185, 129">
+                        <div class="node-icon">!</div>
+                        <h4>Execution Layer</h4>
+                        <p>24/7 operation, auto-scaling, zero AI costs</p>
+                    </div>
+                </div>
+
+                <div class="arch-metrics">
+                    <div class="metric-card">
+                        <div class="metric-value">95%</div>
+                        <div class="metric-label">Cost Reduction vs Pure AI</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">100x</div>
+                        <div class="metric-label">Faster Execution</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">100%</div>
+                        <div class="metric-label">Reproducible Results</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">24/7</div>
+                        <div class="metric-label">Autonomous Operation</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="code-section">
+        <div class="container">
+            <span class="section-label">See It In Action</span>
+            <h2 class="section-title">From Intent to Pipeline</h2>
+            <p class="section-description">Watch AI translate natural language into production-ready code.</p>
+
+            <div class="code-container">
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-dot red"></span>
+                        <span class="code-dot yellow"></span>
+                        <span class="code-dot green"></span>
+                        <span class="code-title">intent.yaml</span>
+                    </div>
+                    <div class="code-content">
+<span class="comment"># What you describe</span>
+<span class="keyword">intent:</span> <span class="string">"Monitor competitor prices"</span>
+
+<span class="keyword">targets:</span>
+  - <span class="string">amazon.com/product/123</span>
+  - <span class="string">walmart.com/item/456</span>
+
+<span class="keyword">actions:</span>
+  - <span class="keyword">when:</span> <span class="string">price_drops > 10%</span>
+    <span class="keyword">do:</span> <span class="string">alert_slack</span>
+  - <span class="keyword">when:</span> <span class="string">price_lowest_30_days</span>
+    <span class="keyword">do:</span> <span class="string">send_email</span>
+
+<span class="keyword">schedule:</span> <span class="string">"every 4 hours"</span>
+                    </div>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-dot red"></span>
+                        <span class="code-dot yellow"></span>
+                        <span class="code-dot green"></span>
+                        <span class="code-title">generated/pipeline.js</span>
+                    </div>
+                    <div class="code-content">
+<span class="comment">// AI-generated deterministic code</span>
+<span class="keyword">const</span> <span class="variable">pipeline</span> = <span class="function">createPipeline</span>({
+  <span class="variable">name</span>: <span class="string">'competitor-price-monitor'</span>,
+  <span class="variable">schedule</span>: <span class="string">'0 */4 * * *'</span>,
+
+  <span class="variable">steps</span>: [
+    <span class="function">scrapePrice</span>(<span class="variable">urls</span>),
+    <span class="function">parseAmount</span>(<span class="variable">html</span>),
+    <span class="function">comparePrices</span>(<span class="variable">current</span>, <span class="variable">history</span>),
+    <span class="function">detectChanges</span>({ <span class="variable">threshold</span>: <span class="number">0.10</span> }),
+    <span class="function">sendAlerts</span>(<span class="variable">channels</span>)
+  ]
 });
 
-<span class="code-comment">// Generates deterministic function</span>
-<span class="code-keyword">function</span> <span class="code-function">transformData</span>(<span class="code-variable">input</span>) {
-  <span class="code-comment">// Reliable, testable logic</span>
-  <span class="code-keyword">return</span> <span class="code-variable">input</span>.<span class="code-function">map</span>(<span class="code-variable">fn</span>);
-}
-                    </div>
-                </div>
-            </div>
-
-            <div class="feature-row">
-                <div class="feature-content">
-                    <h3>Composable Skills</h3>
-                    <p>Build complex workflows from simple, reusable skills. Chain deterministic operations with AI decision points.</p>
-                    <ul class="feature-list">
-                        <li>YAML-based skill definitions</li>
-                        <li>AI-prompt, script, and MCP support</li>
-                        <li>Composite skill chaining</li>
-                        <li>Few-shot learning integration</li>
-                    </ul>
-                </div>
-                <div class="feature-visual">
-                    <div class="code-block">
-<span class="code-comment"># deploy-workflow.yml</span>
-<span class="code-keyword">name:</span> <span class="code-string">deploy-workflow</span>
-<span class="code-keyword">execution:</span>
-  <span class="code-keyword">type:</span> <span class="code-string">composite</span>
-  <span class="code-keyword">steps:</span>
-    - <span class="code-keyword">skill:</span> <span class="code-string">validate-code</span>    <span class="code-comment"># deterministic</span>
-    - <span class="code-keyword">skill:</span> <span class="code-string">ai-review</span>        <span class="code-comment"># AI agent</span>
-    - <span class="code-keyword">skill:</span> <span class="code-string">run-tests</span>       <span class="code-comment"># deterministic</span>
-    - <span class="code-keyword">skill:</span> <span class="code-string">deploy-servloci</span>  <span class="code-comment"># deterministic</span>
+<span class="comment">// Runs forever, no AI calls</span>
+<span class="variable">pipeline</span>.<span class="function">start</span>();
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="task-types" id="tasks">
+    <section class="cta-section" id="start">
         <div class="container">
-            <div class="section-header">
-                <h2>Task Design Patterns</h2>
-                <p>Carefully designed long and short tasks with hybrid intelligence</p>
-            </div>
-            <div class="task-grid">
-                <div class="task-card">
-                    <h4>Code Analysis <span class="duration">Short</span></h4>
-                    <p>Quick code review with AI insights and deterministic linting</p>
-                    <div class="task-tags">
-                        <span class="task-tag ai">AI Review</span>
-                        <span class="task-tag deterministic">ESLint</span>
-                        <span class="task-tag deterministic">TypeCheck</span>
-                    </div>
+            <div class="cta-box">
+                <h2>Build Pipelines That Work</h2>
+                <p>Stop paying per AI request. Start building systems that run autonomously.</p>
+                <div class="cta-buttons">
+                    <a href="https://github.com/vikasavnish/agenticide" class="btn-primary">View on GitHub</a>
+                    <a href="#" class="btn-secondary">Read Documentation</a>
                 </div>
-                <div class="task-card">
-                    <h4>Full Deployment <span class="duration">Long</span></h4>
-                    <p>Complete CI/CD pipeline with intelligent error recovery</p>
-                    <div class="task-tags">
-                        <span class="task-tag deterministic">Build</span>
-                        <span class="task-tag deterministic">Test</span>
-                        <span class="task-tag ai">Error Analysis</span>
-                        <span class="task-tag deterministic">Deploy</span>
-                    </div>
-                </div>
-                <div class="task-card">
-                    <h4>Data Migration <span class="duration">Long</span></h4>
-                    <p>Structured data transformation with AI-assisted mapping</p>
-                    <div class="task-tags">
-                        <span class="task-tag ai">Schema Mapping</span>
-                        <span class="task-tag deterministic">Transform</span>
-                        <span class="task-tag deterministic">Validate</span>
-                    </div>
-                </div>
-                <div class="task-card">
-                    <h4>API Integration <span class="duration">Short</span></h4>
-                    <p>Connect services with generated type-safe wrappers</p>
-                    <div class="task-tags">
-                        <span class="task-tag ai">Spec Analysis</span>
-                        <span class="task-tag deterministic">Code Gen</span>
-                        <span class="task-tag deterministic">Type Check</span>
-                    </div>
-                </div>
-                <div class="task-card">
-                    <h4>Test Generation <span class="duration">Short</span></h4>
-                    <p>AI-generated test cases with deterministic execution</p>
-                    <div class="task-tags">
-                        <span class="task-tag ai">Test Design</span>
-                        <span class="task-tag deterministic">Jest/Mocha</span>
-                        <span class="task-tag deterministic">Coverage</span>
-                    </div>
-                </div>
-                <div class="task-card">
-                    <h4>Documentation <span class="duration">Long</span></h4>
-                    <p>Comprehensive docs from code analysis and AI writing</p>
-                    <div class="task-tags">
-                        <span class="task-tag deterministic">Parse AST</span>
-                        <span class="task-tag ai">Content Gen</span>
-                        <span class="task-tag deterministic">Format</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="cta-section" id="get-started">
-        <div class="container">
-            <h2>Ready to Build Smarter?</h2>
-            <p>Start creating hybrid intelligent workflows today</p>
-            <div class="hero-cta">
-                <a href="https://github.com/vikasavnish/agenticide" class="cta-btn">View on GitHub</a>
-                <a href="#docs" class="btn-secondary">Read Documentation</a>
             </div>
         </div>
     </section>
@@ -691,11 +1508,35 @@
                 <p>Agenticide - Hybrid Intelligence Platform</p>
                 <div class="footer-links">
                     <a href="https://github.com/vikasavnish/agenticide">GitHub</a>
-                    <a href="#docs">Documentation</a>
+                    <a href="#">Documentation</a>
                     <a href="mailto:contact@servloci.in">Contact</a>
                 </div>
             </div>
         </div>
     </footer>
+
+    <script>
+        // Animate pipeline steps on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.pipeline-step, .loop-step, .use-case-card, .arch-node').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Cycle through active pipeline steps
+        let activeStep = 0;
+        const steps = document.querySelectorAll('.pipeline-step');
+        setInterval(() => {
+            steps.forEach(s => s.classList.remove('active'));
+            activeStep = (activeStep + 1) % steps.length;
+            steps[activeStep].classList.add('active');
+        }, 3000);
+    </script>
 </body>
 </html>

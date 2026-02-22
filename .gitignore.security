@@ -1,0 +1,41 @@
+# Security - Never commit these files
+.env
+.env.local
+.env.production
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Build artifacts containing source
+dist/
+build/
+*.map
+
+# License keys
+license.json
+license.key
+
+# Encryption keys
+encryption.key
+keys/
+
+# API tokens
+.anthropic
+.copilot
+tokens.json
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs that might contain sensitive data
+*.log
+logs/
+
+# Temporary files
+*.tmp
+.cache/
